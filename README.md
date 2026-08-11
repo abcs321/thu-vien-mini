@@ -59,12 +59,12 @@ Mở Wampserver, đợi icon dưới khay hệ thống chuyển sang **màu xanh
 
 1. Mở trình duyệt, vào `http://localhost/phpmyadmin`
 2. Tạo database mới tên `thu_vien_mini`
-3. Vào tab **Import**, chọn file `docs/thu_vien_mini.sql` (nếu nhóm đã có file này)
+3. Vào tab **Import**, chọn file `docs/thu_vien_mini.sql`
 4. Bấm **Go** để import
 
 ### Bước 4: Cấu hình kết nối database
 
-Mở file `src/config.php` (nếu có), chỉnh lại thông tin kết nối cho đúng máy đang chạy:
+Mở file `src/config.php`, chỉnh lại thông tin kết nối cho đúng máy đang chạy:
 
 ```php
 $host = "localhost";
@@ -102,12 +102,12 @@ Mở Wampserver, đợi icon dưới khay hệ thống chuyển sang **màu xanh
 
 1. Mở trình duyệt, vào `http://localhost/phpmyadmin`
 2. Tạo database mới tên `thu_vien_mini`
-3. Vào tab **Import**, chọn file `docs/thu_vien_mini.sql` (nếu nhóm đã có file này)
+3. Vào tab **Import**, chọn file `docs/thu_vien_mini.sql`
 4. Bấm **Go** để import
 
 ### Bước 4: Cấu hình kết nối database dùng cmd
 
-Mở file `src/config.php` (nếu có), chỉnh lại thông tin kết nối cho đúng máy đang chạy:
+Mở file `src/config.php`, chỉnh lại thông tin kết nối cho đúng máy đang chạy:
 
 ```php
 $host = "localhost";
