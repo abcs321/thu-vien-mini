@@ -1,1 +1,97 @@
+IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'thu_vien_mini')
+BEGIN
+    CREATE DATABASE thu_vien_mini;
+END
+GO
 
+USE thu_vien_mini;
+GO
+
+IF OBJECT_ID('dbo.sach', 'U') IS NOT NULL DROP TABLE dbo.sach;
+IF OBJECT_ID('dbo.nha_xuat_ban', 'U') IS NOT NULL DROP TABLE dbo.nha_xuat_ban;
+GO
+
+CREATE TABLE nha_xuat_ban (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    ten_nxb NVARCHAR(150) NOT NULL,
+    dia_chi NVARCHAR(255),
+    nam_thanh_lap INT
+);
+GO
+
+INSERT INTO nha_xuat_ban (ten_nxb, dia_chi, nam_thanh_lap) VALUES
+(N'NXB Kim Đồng', N'Hà Nội', 1957),
+(N'NXB Trẻ', N'TP. Hồ Chí Minh', 1981),
+(N'NXB Giáo Dục Việt Nam', N'Hà Nội', 1957),
+(N'NXB Văn Học', N'Hà Nội', 1957),
+(N'NXB Phụ Nữ Việt Nam', N'Hà Nội', 1957),
+(N'NXB Hội Nhà Văn', N'Hà Nội', 1957),
+(N'NXB Lao Động', N'Hà Nội', 1955),
+(N'NXB Thế Giới', N'Hà Nội', 1957),
+(N'NXB Chính Trị Quốc Gia Sự Thật', N'Hà Nội', 1945),
+(N'NXB Đại Học Quốc Gia Hà Nội', N'Hà Nội', 1995),
+(N'NXB Khoa Học Xã Hội', N'Hà Nội', 1967),
+(N'NXB Y Học', N'Hà Nội', 1954),
+(N'NXB Xây Dựng', N'Hà Nội', 1972),
+(N'NXB Nông Nghiệp', N'Hà Nội', 1960),
+(N'NXB Công An Nhân Dân', N'Hà Nội', 1961),
+(N'NXB Quân Đội Nhân Dân', N'Hà Nội', 1950),
+(N'NXB Thanh Niên', N'Hà Nội', 1953),
+(N'NXB Dân Trí', N'Hà Nội', 2010),
+(N'NXB Văn Hóa Dân Tộc', N'Hà Nội', 1957),
+(N'NXB Mỹ Thuật', N'Hà Nội', 1962),
+(N'NXB Âm Nhạc', N'Hà Nội', 1959),
+(N'NXB Tài Chính', N'Hà Nội', 1971),
+(N'NXB Thống Kê', N'Hà Nội', 1975),
+(N'NXB Bách Khoa Hà Nội', N'Hà Nội', 2007),
+(N'NXB Đại Học Sư Phạm', N'Hà Nội', 2004),
+(N'NXB Giao Thông Vận Tải', N'Hà Nội', 1967),
+(N'Công ty Sách Nhã Nam', N'Hà Nội', 2005),
+(N'Công ty Sách Alpha Books', N'Hà Nội', 2007),
+(N'Công ty Sách First News', N'TP. Hồ Chí Minh', 1996),
+(N'Công ty Văn hóa Phương Nam', N'TP. Hồ Chí Minh', 1993);
+GO
+
+CREATE TABLE sach (
+    id INT IDENTITY(1,1) PRIMARY KEY,
+    ten_sach NVARCHAR(255) NOT NULL,
+    tac_gia NVARCHAR(150) NOT NULL,
+    the_loai NVARCHAR(50) NOT NULL,
+    so_luong INT NOT NULL DEFAULT 0,
+    id_nxb INT,
+    CONSTRAINT FK_sach_nxb FOREIGN KEY (id_nxb) REFERENCES nha_xuat_ban(id)
+);
+GO
+
+INSERT INTO sach (ten_sach, tac_gia, the_loai, so_luong, id_nxb) VALUES
+(N'Số Đỏ', N'Vũ Trọng Phụng', N'Van hoc', 12, 4),
+(N'Tắt Đèn', N'Ngô Tất Tố', N'Van hoc', 8, 4),
+(N'Chí Phèo', N'Nam Cao', N'Van hoc', 15, 4),
+(N'Vợ Nhặt', N'Kim Lân', N'Van hoc', 6, 4),
+(N'Truyện Kiều', N'Nguyễn Du', N'Van hoc', 20, 4),
+(N'Nhà Giả Kim', N'Paulo Coelho', N'Van hoc', 3, 27),
+(N'Ông Già Và Biển Cả', N'Ernest Hemingway', N'Van hoc', 5, 4),
+(N'Không Gia Đình', N'Hector Malot', N'Van hoc', 9, 4),
+(N'Những Người Khốn Khổ', N'Victor Hugo', N'Van hoc', 4, 4),
+(N'Chiến Tranh Và Hòa Bình', N'Lev Tolstoy', N'Van hoc', 2, 4),
+(N'Lược Sử Thời Gian', N'Stephen Hawking', N'Khoa hoc', 10, 29),
+(N'Vũ Trụ Trong Vỏ Hạt Dẻ', N'Stephen Hawking', N'Khoa hoc', 7, 29),
+(N'Nguồn Gốc Các Loài', N'Charles Darwin', N'Khoa hoc', 5, 11),
+(N'Sapiens: Lược Sử Loài Người', N'Yuval Noah Harari', N'Khoa hoc', 14, 27),
+(N'Vật Lý Đại Cương', N'Nhiều tác giả', N'Khoa hoc', 25, 3),
+(N'Hóa Học Vui', N'Nhiều tác giả', N'Khoa hoc', 18, 3),
+(N'Bí Ẩn Vũ Trụ', N'Nhiều tác giả', N'Khoa hoc', 0, 8),
+(N'Sinh Học Cơ Bản', N'Nhiều tác giả', N'Khoa hoc', 22, 3),
+(N'Toán Học Kỳ Thú', N'Nhiều tác giả', N'Khoa hoc', 11, 3),
+(N'Trí Tuệ Nhân Tạo', N'Nhiều tác giả', N'Khoa hoc', 6, 24),
+(N'Đắc Nhân Tâm', N'Dale Carnegie', N'Ky nang song', 30, 28),
+(N'7 Thói Quen Hiệu Quả', N'Stephen R. Covey', N'Ky nang song', 16, 28),
+(N'Tư Duy Nhanh Và Chậm', N'Daniel Kahneman', N'Ky nang song', 4, 28),
+(N'Cha Giàu Cha Nghèo', N'Robert Kiyosaki', N'Ky nang song', 9, 29),
+(N'Nghĩ Giàu Làm Giàu', N'Napoleon Hill', N'Ky nang song', 1, 28),
+(N'Sức Mạnh Của Thói Quen', N'Charles Duhigg', N'Ky nang song', 7, 27),
+(N'Quẳng Gánh Lo Đi Và Vui Sống', N'Dale Carnegie', N'Ky nang song', 13, 28),
+(N'Dế Mèn Phiêu Lưu Ký', N'Tô Hoài', N'Thieu nhi', 28, 1),
+(N'Hoàng Tử Bé', N'Antoine de Saint-Exupéry', N'Thieu nhi', 19, 1),
+(N'Harry Potter Và Hòn Đá Phù Thủy', N'J.K. Rowling', N'Thieu nhi', 2, 1);
+GO
