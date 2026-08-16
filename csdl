@@ -7,6 +7,8 @@ DROP TABLE IF EXISTS sach;
 DROP TABLE IF EXISTS nha_xuat_ban;
 DROP TABLE IF EXISTS doc_gia;
 DROP TABLE IF EXISTS tac_gia;
+DROP TABLE IF EXISTS genres;
+DROP TABLE IF EXISTS categories;
 
 CREATE TABLE nha_xuat_ban (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -172,3 +174,91 @@ INSERT INTO tac_gia (ten_tac_gia, quoc_tich, nam_sinh) VALUES
 ('Gabriel García Márquez', 'Colombia', 1927);
 
 ALTER TABLE tac_gia AUTO_INCREMENT = 33;
+
+CREATE TABLE categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    status TINYINT DEFAULT 1,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO categories (id, name, description, status) VALUES
+(1, 'công nghệ', 'sách về công nghệ thông tin', 1),
+(2, 'Văn học việt nam', 'Sách văn học Việt Nam và thế giới', 1),
+(3, 'Kinh tế', 'Sách về kinh doanh và tài chính', 1),
+(4, 'Ngoại ngữ 1', 'Sách học tiếng Anh và các ngoại ngữ khác', 1);
+
+INSERT INTO categories (name, description, status) VALUES
+('Nghệ thuật', 'Sách về hội họa, âm nhạc, điện ảnh', 1),
+('Lịch sử', 'Sách về lịch sử Việt Nam và thế giới', 1),
+('Khoa học tự nhiên', 'Sách về vật lý, hóa học, sinh học', 1),
+('Khoa học xã hội', 'Sách về xã hội học, tâm lý học', 1),
+('Kỹ năng sống', 'Sách phát triển bản thân', 1),
+('Thiếu nhi', 'Sách dành cho trẻ em', 1),
+('Tôn giáo - Triết học', 'Sách về tôn giáo và triết học', 1),
+('Y học - Sức khỏe', 'Sách về y học và chăm sóc sức khỏe', 1),
+('Du lịch', 'Sách hướng dẫn du lịch', 1),
+('Ẩm thực', 'Sách nấu ăn và ẩm thực', 1),
+('Thể thao', 'Sách về thể thao và rèn luyện thể chất', 1),
+('Pháp luật', 'Sách về luật pháp Việt Nam', 1),
+('Chính trị', 'Sách về chính trị và xã hội', 1),
+('Giáo dục', 'Sách nghiệp vụ sư phạm và giáo dục', 1),
+('Toán học', 'Sách chuyên sâu về toán học', 1),
+('Tin học - Công nghệ thông tin', 'Sách chuyên sâu về CNTT', 1),
+('Kiến trúc - Xây dựng', 'Sách về kiến trúc và xây dựng', 1),
+('Nông nghiệp', 'Sách về nông nghiệp và trồng trọt', 1),
+('Y dược', 'Sách về dược học', 1),
+('Môi trường', 'Sách về môi trường và sinh thái', 1),
+('Địa lý', 'Sách về địa lý tự nhiên và kinh tế', 1),
+('Thiên văn học', 'Sách về vũ trụ và thiên văn', 1),
+('Truyện tranh - Manga', 'Truyện tranh và manga', 1),
+('Tự truyện - Hồi ký', 'Sách tự truyện và hồi ký', 1),
+('Kịch - Sân khấu', 'Kịch bản và sách sân khấu', 1),
+('Bách khoa toàn thư', 'Sách tra cứu bách khoa', 1);
+
+CREATE TABLE genres (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    category_id INT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    status TINYINT DEFAULT 1,
+    create_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES categories(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+INSERT INTO genres (id, category_id, name, description, status) VALUES
+(1, 1, 'Lập trình', 'Các sách về lập trình và phát triển phần mềm', 1),
+(2, 1, 'Cơ sở dữ liệu', 'Các sách về cơ sở dữ liệu và SQL', 1),
+(3, 1, 'Mạng máy tính', 'Các sách về mạng máy tính', 1),
+(4, 2, 'Tiểu thuyết', 'Các tác phẩm tiểu thuyết', 1),
+(5, 2, 'Truyện ngắn', 'Các tuyển tập truyện ngắn', 1),
+(6, 2, 'Thơ', 'Các tác phẩm thơ', 1),
+(7, 3, 'Marketing', 'Sách về marketing và quảng cáo', 1),
+(8, 3, 'Tài chính', 'Sách về tài chính và đầu tư', 1),
+(9, 3, 'Quản trị', 'Sách về quản trị doanh nghiệp', 1),
+(10, 4, 'Tiếng Anh', 'Sách học tiếng Anh', 1),
+(11, 4, 'Tiếng Nhật', 'Sách học tiếng Nhật', 1),
+(12, 4, 'Tiếng Hàn', 'Sách học tiếng Hàn', 1),
+(13, 4, 'tiếng trung quốc', 'nì hão', 1);
+
+INSERT INTO genres (category_id, name, description, status) VALUES
+(2, 'Tiểu thuyết trinh thám', 'Truyện trinh thám, hình sự', 1),
+(2, 'Ngôn tình', 'Tiểu thuyết tình cảm', 1),
+(3, 'Kế toán - Kiểm toán', 'Sách chuyên ngành kế toán, kiểm toán', 1),
+(3, 'Chứng khoán - Đầu tư', 'Sách về đầu tư tài chính', 1),
+(4, 'Tiếng Pháp', 'Sách học tiếng Pháp', 1),
+(4, 'Tiếng Đức', 'Sách học tiếng Đức', 1),
+(7, 'Hội họa', 'Sách về nghệ thuật hội họa', 1),
+(7, 'Âm nhạc', 'Sách về âm nhạc', 1),
+(8, 'Lịch sử Việt Nam', 'Sách lịch sử dân tộc', 1),
+(8, 'Lịch sử thế giới', 'Sách lịch sử thế giới', 1),
+(9, 'Vật lý', 'Sách chuyên sâu vật lý', 1),
+(9, 'Sinh học', 'Sách chuyên sâu sinh học', 1),
+(10, 'Tâm lý học', 'Sách về tâm lý con người', 1),
+(11, 'Kỹ năng giao tiếp', 'Sách rèn luyện giao tiếp', 1),
+(12, 'Truyện cổ tích', 'Truyện cổ tích thiếu nhi', 1),
+(13, 'Triết học phương Đông', 'Sách triết học phương Đông', 1),
+(14, 'Dinh dưỡng - Sức khỏe', 'Sách về dinh dưỡng', 1);
+
+ALTER TABLE genres AUTO_INCREMENT = 32;
