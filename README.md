@@ -33,7 +33,7 @@ thu-vien-mini/
 | Thành viên | Đối tượng / Chức năng phụ trách |
 |---|---|
 | Bạn 1 | Sách |
-| Bạn 2 | Độc giả (tài khoản, đăng ký/đăng nhập) |
+| Đỗ Đức Thành | Độc giả (tài khoản, đăng ký/đăng nhập) |
 | Bạn 3 | Tác giả |
 | Bạn 4 | Danh mục / Thể loại |
 | Bạn 5 | Phiếu mượn/trả |
