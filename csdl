@@ -5,185 +5,8 @@ USE thu_vien_mini;
 
 DROP TABLE IF EXISTS sach;
 DROP TABLE IF EXISTS nha_xuat_ban;
-
-CREATE TABLE nha_xuat_ban (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    ten_nxb VARCHAR(150) NOT NULL,
-    dia_chi VARCHAR(255),
-    nam_thanh_lap INT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-INSERT INTO nha_xuat_ban (ten_nxb, dia_chi, nam_thanh_lap) VALUES
-('NXB Kim Đồng', 'Hà Nội', 1957),
-('NXB Trẻ', 'TP. Hồ Chí Minh', 1981),
-('NXB Giáo Dục Việt Nam', 'Hà Nội', 1957),
-('NXB Văn Học', 'Hà Nội', 1957),
-('NXB Phụ Nữ Việt Nam', 'Hà Nội', 1957),
-('NXB Hội Nhà Văn', 'Hà Nội', 1957),
-('NXB Lao Động', 'Hà Nội', 1955),
-('NXB Thế Giới', 'Hà Nội', 1957),
-('NXB Chính Trị Quốc Gia Sự Thật', 'Hà Nội', 1945),
-('NXB Đại Học Quốc Gia Hà Nội', 'Hà Nội', 1995),
-('NXB Khoa Học Xã Hội', 'Hà Nội', 1967),
-('NXB Y Học', 'Hà Nội', 1954),
-('NXB Xây Dựng', 'Hà Nội', 1972),
-('NXB Nông Nghiệp', 'Hà Nội', 1960),
-('NXB Công An Nhân Dân', 'Hà Nội', 1961),
-('NXB Quân Đội Nhân Dân', 'Hà Nội', 1950),
-('NXB Thanh Niên', 'Hà Nội', 1953),
-('NXB Dân Trí', 'Hà Nội', 2010),
-('NXB Văn Hóa Dân Tộc', 'Hà Nội', 1957),
-('NXB Mỹ Thuật', 'Hà Nội', 1962),
-('NXB Âm Nhạc', 'Hà Nội', 1959),
-('NXB Tài Chính', 'Hà Nội', 1971),
-('NXB Thống Kê', 'Hà Nội', 1975),
-('NXB Bách Khoa Hà Nội', 'Hà Nội', 2007),
-('NXB Đại Học Sư Phạm', 'Hà Nội', 2004),
-('NXB Giao Thông Vận Tải', 'Hà Nội', 1967),
-('Công ty Sách Nhã Nam', 'Hà Nội', 2005),
-('Công ty Sách Alpha Books', 'Hà Nội', 2007),
-('Công ty Sách First News', 'TP. Hồ Chí Minh', 1996),
-('Công ty Văn hóa Phương Nam', 'TP. Hồ Chí Minh', 1993);
-
-CREATE TABLE sach (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    ten_sach VARCHAR(255) NOT NULL,
-    tac_gia VARCHAR(150) NOT NULL,
-    the_loai VARCHAR(50) NOT NULL,
-    so_luong INT NOT NULL DEFAULT 0,
-    id_nxb INT,
-    FOREIGN KEY (id_nxb) REFERENCES nha_xuat_ban(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-INSERT INTO sach (ten_sach, tac_gia, the_loai, so_luong, id_nxb) VALUES
-('Số Đỏ', 'Vũ Trọng Phụng', 'Van hoc', 12, 4),
-('Tắt Đèn', 'Ngô Tất Tố', 'Van hoc', 8, 4),
-('Chí Phèo', 'Nam Cao', 'Van hoc', 15, 4),
-('Vợ Nhặt', 'Kim Lân', 'Van hoc', 6, 4),
-('Truyện Kiều', 'Nguyễn Du', 'Van hoc', 20, 4),
-('Nhà Giả Kim', 'Paulo Coelho', 'Van hoc', 3, 27),
-('Ông Già Và Biển Cả', 'Ernest Hemingway', 'Van hoc', 5, 4),
-('Không Gia Đình', 'Hector Malot', 'Van hoc', 9, 4),
-('Những Người Khốn Khổ', 'Victor Hugo', 'Van hoc', 4, 4),
-('Chiến Tranh Và Hòa Bình', 'Lev Tolstoy', 'Van hoc', 2, 4),
-('Lược Sử Thời Gian', 'Stephen Hawking', 'Khoa hoc', 10, 29),
-('Vũ Trụ Trong Vỏ Hạt Dẻ', 'Stephen Hawking', 'Khoa hoc', 7, 29),
-('Nguồn Gốc Các Loài', 'Charles Darwin', 'Khoa hoc', 5, 11),
-('Sapiens: Lược Sử Loài Người', 'Yuval Noah Harari', 'Khoa hoc', 14, 27),
-('Vật Lý Đại Cương', 'Nhiều tác giả', 'Khoa hoc', 25, 3),
-('Hóa Học Vui', 'Nhiều tác giả', 'Khoa hoc', 18, 3),
-('Bí Ẩn Vũ Trụ', 'Nhiều tác giả', 'Khoa hoc', 0, 8),
-('Sinh Học Cơ Bản', 'Nhiều tác giả', 'Khoa hoc', 22, 3),
-('Toán Học Kỳ Thú', 'Nhiều tác giả', 'Khoa hoc', 11, 3),
-('Trí Tuệ Nhân Tạo', 'Nhiều tác giả', 'Khoa hoc', 6, 24),
-('Đắc Nhân Tâm', 'Dale Carnegie', 'Ky nang song', 30, 28),
-('7 Thói Quen Hiệu Quả', 'Stephen R. Covey', 'Ky nang song', 16, 28),
-('Tư Duy Nhanh Và Chậm', 'Daniel Kahneman', 'Ky nang song', 4, 28),
-('Cha Giàu Cha Nghèo', 'Robert Kiyosaki', 'Ky nang song', 9, 29),
-('Nghĩ Giàu Làm Giàu', 'Napoleon Hill', 'Ky nang song', 1, 28),
-('Sức Mạnh Của Thói Quen', 'Charles Duhigg', 'Ky nang song', 7, 27),
-('Quẳng Gánh Lo Đi Và Vui Sống', 'Dale Carnegie', 'Ky nang song', 13, 28),
-('Dế Mèn Phiêu Lưu Ký', 'Tô Hoài', 'Thieu nhi', 28, 1),
-('Hoàng Tử Bé', 'Antoine de Saint-Exupéry', 'Thieu nhi', 19, 1),
-('Harry Potter Và Hòn Đá Phù Thủy', 'J.K. Rowling', 'Thieu nhi', 2, 1);
-
-CREATE DATABASE IF NOT EXISTS thu_vien_mini
-    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-USE thu_vien_mini;
-
-DROP TABLE IF EXISTS sach;
-DROP TABLE IF EXISTS nha_xuat_ban;
-
-CREATE TABLE nha_xuat_ban (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    ten_nxb VARCHAR(150) NOT NULL,
-    dia_chi VARCHAR(255),
-    nam_thanh_lap INT
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-INSERT INTO nha_xuat_ban (ten_nxb, dia_chi, nam_thanh_lap) VALUES
-('NXB Kim Đồng', 'Hà Nội', 1957),
-('NXB Trẻ', 'TP. Hồ Chí Minh', 1981),
-('NXB Giáo Dục Việt Nam', 'Hà Nội', 1957),
-('NXB Văn Học', 'Hà Nội', 1957),
-('NXB Phụ Nữ Việt Nam', 'Hà Nội', 1957),
-('NXB Hội Nhà Văn', 'Hà Nội', 1957),
-('NXB Lao Động', 'Hà Nội', 1955),
-('NXB Thế Giới', 'Hà Nội', 1957),
-('NXB Chính Trị Quốc Gia Sự Thật', 'Hà Nội', 1945),
-('NXB Đại Học Quốc Gia Hà Nội', 'Hà Nội', 1995),
-('NXB Khoa Học Xã Hội', 'Hà Nội', 1967),
-('NXB Y Học', 'Hà Nội', 1954),
-('NXB Xây Dựng', 'Hà Nội', 1972),
-('NXB Nông Nghiệp', 'Hà Nội', 1960),
-('NXB Công An Nhân Dân', 'Hà Nội', 1961),
-('NXB Quân Đội Nhân Dân', 'Hà Nội', 1950),
-('NXB Thanh Niên', 'Hà Nội', 1953),
-('NXB Dân Trí', 'Hà Nội', 2010),
-('NXB Văn Hóa Dân Tộc', 'Hà Nội', 1957),
-('NXB Mỹ Thuật', 'Hà Nội', 1962),
-('NXB Âm Nhạc', 'Hà Nội', 1959),
-('NXB Tài Chính', 'Hà Nội', 1971),
-('NXB Thống Kê', 'Hà Nội', 1975),
-('NXB Bách Khoa Hà Nội', 'Hà Nội', 2007),
-('NXB Đại Học Sư Phạm', 'Hà Nội', 2004),
-('NXB Giao Thông Vận Tải', 'Hà Nội', 1967),
-('Công ty Sách Nhã Nam', 'Hà Nội', 2005),
-('Công ty Sách Alpha Books', 'Hà Nội', 2007),
-('Công ty Sách First News', 'TP. Hồ Chí Minh', 1996),
-('Công ty Văn hóa Phương Nam', 'TP. Hồ Chí Minh', 1993);
-
-CREATE TABLE sach (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    ten_sach VARCHAR(255) NOT NULL,
-    tac_gia VARCHAR(150) NOT NULL,
-    the_loai VARCHAR(50) NOT NULL,
-    so_luong INT NOT NULL DEFAULT 0,
-    id_nxb INT,
-    FOREIGN KEY (id_nxb) REFERENCES nha_xuat_ban(id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-INSERT INTO sach (ten_sach, tac_gia, the_loai, so_luong, id_nxb) VALUES
-('Số Đỏ', 'Vũ Trọng Phụng', 'Van hoc', 12, 4),
-('Tắt Đèn', 'Ngô Tất Tố', 'Van hoc', 8, 4),
-('Chí Phèo', 'Nam Cao', 'Van hoc', 15, 4),
-('Vợ Nhặt', 'Kim Lân', 'Van hoc', 6, 4),
-('Truyện Kiều', 'Nguyễn Du', 'Van hoc', 20, 4),
-('Nhà Giả Kim', 'Paulo Coelho', 'Van hoc', 3, 27),
-('Ông Già Và Biển Cả', 'Ernest Hemingway', 'Van hoc', 5, 4),
-('Không Gia Đình', 'Hector Malot', 'Van hoc', 9, 4),
-('Những Người Khốn Khổ', 'Victor Hugo', 'Van hoc', 4, 4),
-('Chiến Tranh Và Hòa Bình', 'Lev Tolstoy', 'Van hoc', 2, 4),
-('Lược Sử Thời Gian', 'Stephen Hawking', 'Khoa hoc', 10, 29),
-('Vũ Trụ Trong Vỏ Hạt Dẻ', 'Stephen Hawking', 'Khoa hoc', 7, 29),
-('Nguồn Gốc Các Loài', 'Charles Darwin', 'Khoa hoc', 5, 11),
-('Sapiens: Lược Sử Loài Người', 'Yuval Noah Harari', 'Khoa hoc', 14, 27),
-('Vật Lý Đại Cương', 'Nhiều tác giả', 'Khoa hoc', 25, 3),
-('Hóa Học Vui', 'Nhiều tác giả', 'Khoa hoc', 18, 3),
-('Bí Ẩn Vũ Trụ', 'Nhiều tác giả', 'Khoa hoc', 0, 8),
-('Sinh Học Cơ Bản', 'Nhiều tác giả', 'Khoa hoc', 22, 3),
-('Toán Học Kỳ Thú', 'Nhiều tác giả', 'Khoa hoc', 11, 3),
-('Trí Tuệ Nhân Tạo', 'Nhiều tác giả', 'Khoa hoc', 6, 24),
-('Đắc Nhân Tâm', 'Dale Carnegie', 'Ky nang song', 30, 28),
-('7 Thói Quen Hiệu Quả', 'Stephen R. Covey', 'Ky nang song', 16, 28),
-('Tư Duy Nhanh Và Chậm', 'Daniel Kahneman', 'Ky nang song', 4, 28),
-('Cha Giàu Cha Nghèo', 'Robert Kiyosaki', 'Ky nang song', 9, 29),
-('Nghĩ Giàu Làm Giàu', 'Napoleon Hill', 'Ky nang song', 1, 28),
-('Sức Mạnh Của Thói Quen', 'Charles Duhigg', 'Ky nang song', 7, 27),
-('Quẳng Gánh Lo Đi Và Vui Sống', 'Dale Carnegie', 'Ky nang song', 13, 28),
-('Dế Mèn Phiêu Lưu Ký', 'Tô Hoài', 'Thieu nhi', 28, 1),
-('Hoàng Tử Bé', 'Antoine de Saint-Exupéry', 'Thieu nhi', 19, 1),
-('Harry Potter Và Hòn Đá Phù Thủy', 'J.K. Rowling', 'Thieu nhi', 2, 1);
-
-CREATE DATABASE IF NOT EXISTS thu_vien_mini
-    CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-USE thu_vien_mini;
-
-DROP TABLE IF EXISTS sach;
-DROP TABLE IF EXISTS nha_xuat_ban;
 DROP TABLE IF EXISTS doc_gia;
+DROP TABLE IF EXISTS tac_gia;
 
 CREATE TABLE nha_xuat_ban (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -306,3 +129,46 @@ INSERT INTO doc_gia (ho_ten, ma_doc_gia, so_dien_thoai, ten_dang_nhap, mat_khau)
 ('Bùi Văn Nam', '2231010028', '0901234528', 'docgia28', 'matkhau123'),
 ('Đỗ Thị Oanh', '2231010029', '0901234529', 'docgia29', 'matkhau123'),
 ('Ngô Văn Phong', '2231010030', '0901234530', 'docgia30', 'matkhau123');
+
+CREATE TABLE tac_gia (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ten_tac_gia VARCHAR(100) NOT NULL,
+    quoc_tich VARCHAR(50) NOT NULL,
+    nam_sinh INT NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO tac_gia (id, ten_tac_gia, quoc_tich, nam_sinh) VALUES
+(1, 'Ngô Đức Anh', 'Việt Nam', 1995),
+(4, 'Lê Quỳnh Trang', 'Việt Nam', 2006);
+
+INSERT INTO tac_gia (ten_tac_gia, quoc_tich, nam_sinh) VALUES
+('Vũ Trọng Phụng', 'Việt Nam', 1912),
+('Ngô Tất Tố', 'Việt Nam', 1894),
+('Nam Cao', 'Việt Nam', 1917),
+('Kim Lân', 'Việt Nam', 1920),
+('Nguyễn Du', 'Việt Nam', 1765),
+('Tô Hoài', 'Việt Nam', 1920),
+('Paulo Coelho', 'Brazil', 1947),
+('Ernest Hemingway', 'Hoa Kỳ', 1899),
+('Mark Twain', 'Hoa Kỳ', 1835),
+('Hector Malot', 'Pháp', 1830),
+('Antoine de Saint-Exupéry', 'Pháp', 1900),
+('Victor Hugo', 'Pháp', 1802),
+('Lev Tolstoy', 'Nga', 1828),
+('Stephen Hawking', 'Anh', 1942),
+('Charles Darwin', 'Anh', 1809),
+('Agatha Christie', 'Anh', 1890),
+('George Orwell', 'Anh', 1903),
+('Jane Austen', 'Anh', 1775),
+('J.K. Rowling', 'Anh', 1965),
+('Yuval Noah Harari', 'Israel', 1976),
+('Daniel Kahneman', 'Israel', 1934),
+('Dale Carnegie', 'Hoa Kỳ', 1888),
+('Napoleon Hill', 'Hoa Kỳ', 1883),
+('Charles Duhigg', 'Hoa Kỳ', 1974),
+('Stephen R. Covey', 'Hoa Kỳ', 1932),
+('Robert Kiyosaki', 'Hoa Kỳ', 1947),
+('Haruki Murakami', 'Nhật Bản', 1949),
+('Gabriel García Márquez', 'Colombia', 1927);
+
+ALTER TABLE tac_gia AUTO_INCREMENT = 33;
