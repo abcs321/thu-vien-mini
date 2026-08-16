@@ -2,10 +2,10 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th8 16, 2026 lúc 02:29 AM
--- Phiên bản máy phục vụ: 10.4.32-MariaDB
--- Phiên bản PHP: 8.1.25
+-- Host: 127.0.0.1
+-- Generation Time: Aug 15, 2026 at 09:13 AM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,49 +18,44 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Cơ sở dữ liệu: `thu_vien_mini`
+-- Database: `thu_vien_mini`
 --
 
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `tac_gia`
+-- Table structure for table `doc_gia`
 --
 
-CREATE TABLE `tac_gia` (
+CREATE TABLE `doc_gia` (
   `id` int(11) NOT NULL,
-  `ten_tac_gia` varchar(100) NOT NULL,
-  `quoc_tich` varchar(50) NOT NULL,
-  `nam_sinh` int(4) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `ho_ten` varchar(100) NOT NULL,
+  `mssv` varchar(20) NOT NULL,
+  `lop` varchar(50) NOT NULL,
+  `so_dien_thoai` varchar(15) NOT NULL,
+  `ten_dang_nhap` varchar(50) NOT NULL,
+  `mat_khau` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `tac_gia`
---
-
-INSERT INTO `tac_gia` (`id`, `ten_tac_gia`, `quoc_tich`, `nam_sinh`) VALUES
-(1, 'Ngô Đức Anh', 'Việt Nam', 1995),
-(4, 'Lê Quỳnh Trang', 'Việt Nam', 2006);
-
---
--- Chỉ mục cho các bảng đã đổ
+-- Indexes for dumped tables
 --
 
 --
--- Chỉ mục cho bảng `tac_gia`
+-- Indexes for table `doc_gia`
 --
-ALTER TABLE `tac_gia`
+ALTER TABLE `doc_gia`
   ADD PRIMARY KEY (`id`);
 
 --
--- AUTO_INCREMENT cho các bảng đã đổ
+-- AUTO_INCREMENT for dumped tables
 --
 
 --
--- AUTO_INCREMENT cho bảng `tac_gia`
+-- AUTO_INCREMENT for table `doc_gia`
 --
-ALTER TABLE `tac_gia`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+ALTER TABLE `doc_gia`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
