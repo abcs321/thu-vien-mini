@@ -7,8 +7,6 @@ thành viên
 
 # Thư Viện Mini
 
-Thư viện Online hướng đến việc đưa tri thức đến gần hơn với mọi người, tạo điều kiện thuận lợi cho việc tự học, nghiên cứu và phát triển kiến thức.
-
 ## Công nghệ sử dụng
 
 | Thành phần       | Công nghệ                    |
