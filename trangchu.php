@@ -1,16 +1,60 @@
 <?php
+// ===============================
+// KHỞI TẠO DỮ LIỆU TRANG CHỦ
+// ===============================
+
 $pageTitle = "Trang chủ - Thư viện";
+
+// Thông tin thống kê
+$totalBooks = 20000;
+$totalMembers = 1000;
+$totalBorrowedBooks = 100;
+
+// Thống kê cuối trang
+$totalBorrowTimes = 14;
+$totalLostBooks = 0;
+$totalDamagedBooks = 0;
+
+// Danh sách hoạt động gần đây
+$activities = [
+    [
+        "code" => "M01",
+        "name" => "Lê Đình Nam",
+        "book" => "OPM tập 1",
+        "time" => "15:03",
+        "status" => "TRẢ SÁCH",
+        "statusClass" => "returned"
+    ],
+    [
+        "code" => "M02",
+        "name" => "Đinh Hào Kiệt",
+        "book" => "Harry Potter và hòn đá phù thủy",
+        "time" => "14:05",
+        "status" => "QUÁ HẠN",
+        "statusClass" => "overdue"
+    ]
+];
+
+// ===============================
+// HÀM HIỂN THỊ DỮ LIỆU AN TOÀN
+// ===============================
+
+function e($value)
+{
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="vi">
 
 <head>
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <<title>
-        <?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?>
-    </title>
+    <title><?= e($pageTitle) ?></title>
 
     <link rel="stylesheet" href="thuvien.css">
 
@@ -25,11 +69,13 @@ $pageTitle = "Trang chủ - Thư viện";
         <div class="site-header-inner">
 
             <!-- LOGO -->
+
             <div class="brand">
 
                 <span class="brand-mark">
 
                     <!-- Icon kính lúp -->
+
                     <svg viewBox="0 0 24 24"
                          width="22"
                          height="22"
@@ -37,7 +83,9 @@ $pageTitle = "Trang chủ - Thư viện";
                          stroke="currentColor"
                          stroke-width="2">
 
-                        <circle cx="10.5" cy="10.5" r="6.5"/>
+                        <circle cx="10.5"
+                                cy="10.5"
+                                r="6.5"/>
 
                         <line x1="15.3"
                               y1="15.3"
@@ -56,9 +104,11 @@ $pageTitle = "Trang chủ - Thư viện";
 
 
             <!-- MENU -->
+
             <nav class="main-nav">
 
-                <a href="index.html" class="active">
+                <a href="trangchu.php"
+                   class="active">
                     TRANG CHỦ
                 </a>
 
@@ -86,7 +136,9 @@ $pageTitle = "Trang chủ - Thư viện";
 
 
             <!-- ĐĂNG NHẬP -->
-            <a href="#" class="btn-login">
+
+            <a href="dangnhap.php"
+               class="btn-login">
 
                 <svg viewBox="0 0 24 24"
                      width="15"
@@ -117,7 +169,7 @@ $pageTitle = "Trang chủ - Thư viện";
     <main class="container">
 
 
-        <!-- KHU VỰC THỐNG KÊ -->
+        <!-- ================= KHU VỰC THỐNG KÊ ================= -->
 
         <section class="hero">
 
@@ -133,7 +185,7 @@ $pageTitle = "Trang chủ - Thư viện";
                     </div>
 
                     <div class="stat-number">
-                        20,000
+                        <?= number_format($totalBooks) ?>
                     </div>
 
                     <div class="stat-note">
@@ -152,7 +204,7 @@ $pageTitle = "Trang chủ - Thư viện";
                     </div>
 
                     <div class="stat-number">
-                        1,000
+                        <?= number_format($totalMembers) ?>
                     </div>
 
                     <div class="stat-note">
@@ -171,7 +223,7 @@ $pageTitle = "Trang chủ - Thư viện";
                     </div>
 
                     <div class="stat-number">
-                        100
+                        <?= number_format($totalBorrowedBooks) ?>
                     </div>
 
                     <div class="stat-note warning">
@@ -183,7 +235,6 @@ $pageTitle = "Trang chủ - Thư viện";
             </div>
 
         </section>
-
 
 
         <!-- ================= HOẠT ĐỘNG ================= -->
@@ -200,53 +251,33 @@ $pageTitle = "Trang chủ - Thư viện";
                 </h3>
 
 
-                <!-- Hoạt động 1 -->
+                <?php foreach ($activities as $activity): ?>
 
-                <div class="activity">
+                    <div class="activity">
 
-                    <span class="code">
-                        M01
-                    </span>
+                        <span class="code">
+                            <?= e($activity["code"]) ?>
+                        </span>
 
-                    <span class="name">
-                        Lê Đình Nam
-                    </span>
+                        <span class="name">
+                            <?= e($activity["name"]) ?>
+                        </span>
 
-                    <span class="book">
-                        OPM tập 1 - 15:03
-                    </span>
+                        <span class="book">
+                            <?= e($activity["book"]) ?>
+                            -
+                            <?= e($activity["time"]) ?>
+                        </span>
 
-                    <span class="status returned">
-                        TRẢ SÁCH
-                    </span>
+                        <span class="status <?= e($activity["statusClass"]) ?>">
+                            <?= e($activity["status"]) ?>
+                        </span>
 
-                </div>
+                    </div>
 
-
-                <!-- Hoạt động 2 -->
-
-                <div class="activity">
-
-                    <span class="code">
-                        M02
-                    </span>
-
-                    <span class="name">
-                        Đinh Hào Kiệt
-                    </span>
-
-                    <span class="book">
-                        Harry Potter và hòn đá phù thủy - 14:05
-                    </span>
-
-                    <span class="status overdue">
-                        QUÁ HẠN
-                    </span>
-
-                </div>
+                <?php endforeach; ?>
 
             </div>
-
 
 
             <!-- NÚT CHỨC NĂNG -->
@@ -270,7 +301,6 @@ $pageTitle = "Trang chủ - Thư viện";
         </section>
 
 
-
         <!-- ================= THỐNG KÊ CUỐI ================= -->
 
         <section class="bottom-stat">
@@ -285,7 +315,7 @@ $pageTitle = "Trang chủ - Thư viện";
                 </h3>
 
                 <div class="bottom-number">
-                    14
+                    <?= number_format($totalBorrowTimes) ?>
                 </div>
 
             </div>
@@ -300,7 +330,7 @@ $pageTitle = "Trang chủ - Thư viện";
                 </h3>
 
                 <div class="bottom-number">
-                    0
+                    <?= number_format($totalLostBooks) ?>
                 </div>
 
             </div>
@@ -310,15 +340,15 @@ $pageTitle = "Trang chủ - Thư viện";
 
             <div class="bottom-item">
 
-    <h3>
-        SỐ SÁCH HỎNG
-    </h3>
+                <h3>
+                    SỐ SÁCH HỎNG
+                </h3>
 
-    <div class="bottom-number">
-        0
-    </div>
+                <div class="bottom-number">
+                    <?= number_format($totalDamagedBooks) ?>
+                </div>
 
-</div>
+            </div>
 
         </section>
 
