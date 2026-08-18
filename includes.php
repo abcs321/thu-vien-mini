@@ -1,13 +1,4 @@
 <?php
-/**
- * includes.php — Phần DÙNG CHUNG cho mọi trang (header, footer, hàm tiện ích).
- * Các trang (index.php, danh-sach-sach.php, ...) đều require file này ở đầu file.
- * Sửa menu / thông tin footer ở đây sẽ áp dụng cho TẤT CẢ các trang cùng lúc.
- */
-
-/* ---------- Menu điều hướng dùng chung ----------
- * 'key' dùng để đánh dấu mục đang active theo từng trang (xem render_header()).
- * Đổi 'href' sang tên file thật khi bạn tạo thêm trang mới. */
 $nav = [
     'logo'  => 'THƯ VIỆN',
     'links' => [
@@ -76,7 +67,7 @@ function render_header(array $nav, string $activeKey = ''): void
                     <a href="<?= esc($link['href']) ?>" class="<?= ($link['key'] === $activeKey) ? 'active' : '' ?>"><?= esc($link['label']) ?></a>
                 <?php endforeach; ?>
             </nav>
-            <a href="#" class="btn-login">
+            <a href="login.php" class="btn-login">
                 <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.4-3.6 4.4-5.6 7.5-5.6s6.1 2 7.5 5.6"/></svg>
                 <?= esc($nav['login']) ?>
             </a>
