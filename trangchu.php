@@ -5,7 +5,10 @@
 
 $pageTitle = "Trang chủ - Thư viện";
 
-// Thông tin thống kê
+// ===============================
+// DỮ LIỆU THỐNG KÊ
+// ===============================
+
 $totalBooks = 20000;
 $totalMembers = 1000;
 $totalBorrowedBooks = 100;
@@ -15,7 +18,11 @@ $totalBorrowTimes = 14;
 $totalLostBooks = 0;
 $totalDamagedBooks = 0;
 
-// Danh sách hoạt động gần đây
+
+// ===============================
+// DỮ LIỆU HOẠT ĐỘNG GẦN ĐÂY
+// ===============================
+
 $activities = [
     [
         "code" => "M01",
@@ -25,6 +32,7 @@ $activities = [
         "status" => "TRẢ SÁCH",
         "statusClass" => "returned"
     ],
+
     [
         "code" => "M02",
         "name" => "Đinh Hào Kiệt",
@@ -35,13 +43,14 @@ $activities = [
     ]
 ];
 
+
 // ===============================
-// HÀM HIỂN THỊ DỮ LIỆU AN TOÀN
+// HÀM BẢO VỆ DỮ LIỆU KHI HIỂN THỊ
 // ===============================
 
-function e($value)
+function e($data)
 {
-    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+    return htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
 }
 ?>
 
@@ -52,7 +61,8 @@ function e($value)
 
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
     <title><?= e($pageTitle) ?></title>
 
