@@ -135,3 +135,50 @@ git add .
 git commit -m "Mo ta ngan gon thay doi"
 git push origin main
 ```
+
+các validate
+A.Form Liên hệ (contact.php)
+Họ & Tên (ho, ten): Bắt buộc, tối đa 50 ký tự, loại bỏ ký tự đặc biệt nguy hiểm để chống XSS.
+
+Số điện thoại (so_dien_thoai): Bắt buộc, đúng định dạng số điện thoại Việt Nam (10 chữ số, bắt đầu bằng 03, 05, 07, 08, 09).
+
+Địa chỉ Email (email): Bắt buộc, sử dụng hàm chuẩn filter_var($email, FILTER_VALIDATE_EMAIL).
+
+Nội dung góp ý (noi_dung): Bắt buộc, độ dài từ 10 đến 500 ký tự. Dữ liệu đầu ra phải được mã hóa qua htmlspecialchars() trước khi hiển thị lại.
+
+B.Form Đăng ký tài khoản register.php
+Tên người dùng (username): Bắt buộc, từ 6 - 30 ký tự, chỉ chứa chữ cái, số và dấu gạch dưới ([a-zA-Z0-9_]).
+
+Email (email): Bắt buộc, đúng định dạng và kiểm tra không trùng lặp trong CSDL.
+
+Mật khẩu (password): Bắt buộc, tối thiểu 6 ký tự, bao gồm cả chữ và số.
+
+Nhập lại mật khẩu (confirm_password): Phải khớp chính xác với trường mật khẩu.
+
+Mã xác minh email (verify_code): Bắt buộc nhập đúng mã định dạng (6 ký tự chữ/số giả lập gửi qua email).
+
+Điều khoản sử dụng: Bắt buộc phải tích chọn checkbox đồng ý.
+
+C.Form Đăng nhập (login.php)
+Tên người dùng / Email: Bắt buộc không được để trống.
+
+Mật khẩu: Bắt buộc nhập đúng mật khẩu đã đăng ký.
+
+D.Form Quản lý/Chỉnh sửa thành viên (Admin) (admin/members.php)
+Họ và tên: Bắt buộc, chuỗi từ 3 - 50 ký tự.
+
+Ngày sinh: Định dạng chuẩn dd/mm/yyyy, hợp lệ về mặt thời gian thực tế.
+
+Nơi sống (Thành phố, xã, chi tiết): Các trường thông tin địa chỉ bắt buộc nhập đầy đủ định dạng văn bản.
+
+Thông tin thanh toán (Thẻ tín dụng/CVV): Chỉ nhận định dạng số (nếu có nhập), mã CVV đúng 3 chữ số bảo mật.
+
+
+
+Danh sách Route dự kiến cho hệ thống
+index.php trang chủ
+khampha.php tới các danh mục có trong hệ thống
+login/register.php đăng nhập/đăng ký
+danh-sach-sach.php các đầu sách được đề xuất
+admin-book/admin-member.php điều chỉnh thông tin hệ thống
+muon-sach.php đăng ký mượn sách
