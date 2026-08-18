@@ -182,3 +182,9 @@ login/register.php đăng nhập/đăng ký
 danh-sach-sach.php các đầu sách được đề xuất
 admin-book/admin-member.php điều chỉnh thông tin hệ thống
 muon-sach.php đăng ký mượn sách
+
+
+## Quy tắc Validation & Bảo mật Form (Cập nhật Buổi 3)
+- **Kiểm tra dữ liệu phía Server:** Toàn bộ các form (`contact`, `register`, `login`, `admin-member`) đều được lọc dữ liệu trống, kiểm tra định dạng (`filter_var`, `preg_match`) trước khi xử lý.
+- **Phòng chống XSS:** Dữ liệu hiển thị trực tiếp từ người dùng luôn được xử lý bằng hàm `htmlspecialchars()` để tránh mã độc chèn vào trình duyệt.
+- **Giữ lại dữ liệu cũ (Old Input):** Khi form báo lỗi validation, hệ thống giữ nguyên các giá trị hợp lệ mà người dùng đã nhập trước đó để tăng trải nghiệm.
