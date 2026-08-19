@@ -1,59 +1,101 @@
 <?php
-// ===============================
-// KHỞI TẠO DỮ LIỆU TRANG CHỦ
-// ===============================
+
+// ============================================================
+// PHẦN PHP XỬ LÝ DỮ LIỆU
+// ============================================================
+
+session_start();
+
+
+// ------------------------------------------------------------
+// HÀM BẢO VỆ DỮ LIỆU KHI HIỂN THỊ
+// ------------------------------------------------------------
+
+function e($value)
+{
+    return htmlspecialchars(
+        (string)$value,
+        ENT_QUOTES,
+        'UTF-8'
+    );
+}
+
+
+// ------------------------------------------------------------
+// KHỞI TẠO DỮ LIỆU THƯ VIỆN (DEMO)
+// ------------------------------------------------------------
+
+if (!isset($_SESSION["library"])) {
+
+    $_SESSION["library"] = [
+
+        "totalBooks" => 20000,
+
+        "totalMembers" => 1000,
+
+        "totalBorrowedBooks" => 100,
+
+        "totalBorrowTimes" => 14,
+
+        "totalLostBooks" => 0,
+
+        "totalDamagedBooks" => 0,
+
+        "activities" => [
+
+            [
+                "code" => "M01",
+                "name" => "Lê Đình Nam",
+                "book" => "OPM tập 1",
+                "time" => "15:03",
+                "status" => "TRẢ SÁCH",
+                "statusClass" => "returned"
+            ],
+
+            [
+                "code" => "M02",
+                "name" => "Đinh Hào Kiệt",
+                "book" => "Harry Potter và hòn đá phù thủy",
+                "time" => "14:05",
+                "status" => "QUÁ HẠN",
+                "statusClass" => "overdue"
+            ]
+
+        ]
+
+    ];
+}
+
+
+// ------------------------------------------------------------
+// LẤY DỮ LIỆU RA BIẾN
+// ------------------------------------------------------------
+
+$totalBooks         = $_SESSION["library"]["totalBooks"];
+$totalMembers        = $_SESSION["library"]["totalMembers"];
+$totalBorrowedBooks  = $_SESSION["library"]["totalBorrowedBooks"];
+$totalBorrowTimes    = $_SESSION["library"]["totalBorrowTimes"];
+$totalLostBooks      = $_SESSION["library"]["totalLostBooks"];
+$totalDamagedBooks   = $_SESSION["library"]["totalDamagedBooks"];
+$activities          = $_SESSION["library"]["activities"];
+
+
+// ------------------------------------------------------------
+// (Ô XỬ LÝ FORM SẼ ĐƯỢC HOÀN THIỆN Ở BƯỚC LÀM CHỨC NĂNG)
+// Hiện tại chỉ giữ khung để không phá giao diện.
+// ------------------------------------------------------------
+
+$message     = "";
+$messageType = "";
+
+
+// ------------------------------------------------------------
+// TIÊU ĐỀ TRANG
+// ------------------------------------------------------------
 
 $pageTitle = "Trang chủ - Thư viện";
 
-// ===============================
-// DỮ LIỆU THỐNG KÊ
-// ===============================
-
-$totalBooks = 20000;
-$totalMembers = 1000;
-$totalBorrowedBooks = 100;
-
-// Thống kê cuối trang
-$totalBorrowTimes = 14;
-$totalLostBooks = 0;
-$totalDamagedBooks = 0;
-
-
-// ===============================
-// DỮ LIỆU HOẠT ĐỘNG GẦN ĐÂY
-// ===============================
-
-$activities = [
-    [
-        "code" => "M01",
-        "name" => "Lê Đình Nam",
-        "book" => "OPM tập 1",
-        "time" => "15:03",
-        "status" => "TRẢ SÁCH",
-        "statusClass" => "returned"
-    ],
-
-    [
-        "code" => "M02",
-        "name" => "Đinh Hào Kiệt",
-        "book" => "Harry Potter và hòn đá phù thủy",
-        "time" => "14:05",
-        "status" => "QUÁ HẠN",
-        "statusClass" => "overdue"
-    ]
-];
-
-
-// ===============================
-// HÀM BẢO VỆ DỮ LIỆU KHI HIỂN THỊ
-// ===============================
-
-function e($data)
-{
-    return htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
-}
 ?>
-
 <!DOCTYPE html>
 <html lang="vi">
 
@@ -61,125 +103,187 @@ function e($data)
 
     <meta charset="UTF-8">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title><?= e($pageTitle) ?></title>
 
     <link rel="stylesheet" href="thuvien.css">
 
+
+    <!-- =====================================================
+         CSS RIÊNG CHO TRANG QUẢN TRỊ (TRANGCHU.PHP)
+         Chỉ bổ sung phần khác biệt so với thuvien.css dùng chung,
+         không sửa thuvien.css để không ảnh hưởng các trang khác.
+         ===================================================== -->
+
+    <style>
+
+        body {
+            padding-top: 18px;
+        }
+
+
+        /* NHÃN "giao diện admin/thủ thư" */
+
+        .admin-label {
+            width: 700px;
+            max-width: 95%;
+            margin: 0 auto 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #eee;
+        }
+
+
+        /* HEADER RIÊNG CHO TRANG QUẢN TRỊ (rút gọn menu) */
+
+        .admin-header {
+            width: 700px;
+            max-width: 95%;
+            margin: 0 auto;
+            background-color: white;
+        }
+
+        .admin-nav {
+            display: flex;
+            align-items: center;
+            gap: 34px;
+            height: 60px;
+            padding: 0 20px;
+        }
+
+        .admin-nav a {
+            text-decoration: none;
+            font-size: 13px;
+            letter-spacing: 0.3px;
+            color: #999;
+            font-weight: 600;
+        }
+
+        .admin-nav a.active {
+            color: #111;
+        }
+
+
+        /* THÔNG BÁO KẾT QUẢ XỬ LÝ PHP (dùng khi làm chức năng) */
+
+        .php-message {
+            margin: 0 0 15px;
+            padding: 12px 15px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .php-message.success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .php-message.error {
+            background-color: #fdecea;
+            color: #c0392b;
+        }
+
+
+        /* Ô SỐ SÁCH MƯỢN CÓ CHÚ THÍCH NHỎ ĐI KÈM SỐ */
+
+        .stat-sub {
+            font-size: 11px;
+            font-weight: normal;
+            color: #999;
+        }
+
+
+        /* FORM ĐIỀU CHỈNH (ẩn - hiện khi bấm nút, sẽ nối chức năng sau) */
+
+        .adjust-form {
+            display: none;
+            background-color: white;
+            padding: 18px;
+            margin: 0 10px 20px;
+            box-shadow: 0 1px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .adjust-form h3 {
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
+        .adjust-form input {
+            width: 100%;
+            padding: 9px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+
+        .adjust-form button {
+            border: none;
+            background-color: #168bea;
+            color: white;
+            padding: 9px 16px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+    </style>
+
 </head>
 
 <body>
 
-    <!-- ================= HEADER ================= -->
 
-    <header class="site-header">
+    <!-- NHÃN VAI TRÒ TRANG -->
 
-        <div class="site-header-inner">
-
-            <!-- LOGO -->
-
-            <div class="brand">
-
-                <span class="brand-mark">
-
-                    <!-- Icon kính lúp -->
-
-                    <svg viewBox="0 0 24 24"
-                         width="22"
-                         height="22"
-                         fill="none"
-                         stroke="currentColor"
-                         stroke-width="2">
-
-                        <circle cx="10.5"
-                                cy="10.5"
-                                r="6.5"/>
-
-                        <line x1="15.3"
-                              y1="15.3"
-                              x2="20.5"
-                              y2="20.5"/>
-
-                    </svg>
-
-                </span>
-
-                <span class="brand-name">
-                    THƯ VIỆN
-                </span>
-
-            </div>
+    <p class="admin-label">
+        giao diện admin/thủ thư
+    </p>
 
 
-            <!-- MENU -->
+    <!-- =========================
+         HEADER RÚT GỌN (QUẢN TRỊ)
+    ========================== -->
 
-            <nav class="main-nav">
+    <header class="admin-header">
 
-                <a href="trangchu.php"
-                   class="active">
-                    TRANG CHỦ
-                </a>
+        <nav class="admin-nav">
 
-                <a href="#">
-                    VỀ CHÚNG TÔI
-                </a>
-
-                <a href="sach.php">
-                    DANH SÁCH SÁCH
-                </a>
-
-                <a href="phieumuon.php">
-                    PHIẾU MƯỢN
-                </a>
-
-                <a href="#">
-                    KHÁM PHÁ
-                </a>
-
-                <a href="lienhe.php">
-                    LIÊN LẠC
-                </a>
-
-            </nav>
-
-
-            <!-- ĐĂNG NHẬP -->
-
-            <a href="dangnhap.php"
-               class="btn-login">
-
-                <svg viewBox="0 0 24 24"
-                     width="15"
-                     height="15"
-                     fill="none"
-                     stroke="currentColor"
-                     stroke-width="2">
-
-                    <circle cx="12"
-                            cy="8"
-                            r="3.4"/>
-
-                    <path d="M4.5 20c1.4-3.6 4.4-5.6 7.5-5.6s6.1 2 7.5 5.6"/>
-
-                </svg>
-
-                Đăng nhập
-
+            <a href="trangchu.php" class="active">
+                TRANG CHỦ
             </a>
 
-        </div>
+            <a href="sach.php">
+                SÁCH
+            </a>
+
+            <a href="#">
+                THÀNH VIÊN
+            </a>
+
+        </nav>
 
     </header>
 
 
-    <!-- ================= NỘI DUNG TRANG CHỦ ================= -->
+    <!-- =========================
+         NỘI DUNG CHÍNH
+    ========================== -->
 
     <main class="container">
 
 
-        <!-- ================= KHU VỰC THỐNG KÊ ================= -->
+        <?php if ($message !== ""): ?>
+
+            <div class="php-message <?= e($messageType) ?>">
+                <?= e($message) ?>
+            </div>
+
+        <?php endif; ?>
+
+
+        <!-- KHU VỰC THỐNG KÊ -->
 
         <section class="hero">
 
@@ -234,20 +338,22 @@ function e($data)
 
                     <div class="stat-number">
                         <?= number_format($totalBorrowedBooks) ?>
+                        <span class="stat-sub">trong hôm nay</span>
                     </div>
 
                     <div class="stat-note warning">
-                        Có sách quá hạn trả
+                        có sách quá hạn trả
                     </div>
 
                 </div>
+
 
             </div>
 
         </section>
 
 
-        <!-- ================= HOẠT ĐỘNG ================= -->
+        <!-- HOẠT ĐỘNG + NÚT CHỨC NĂNG -->
 
         <section class="content-area">
 
@@ -259,7 +365,6 @@ function e($data)
                 <h3>
                     HOẠT ĐỘNG GẦN ĐÂY
                 </h3>
-
 
                 <?php foreach ($activities as $activity): ?>
 
@@ -274,9 +379,7 @@ function e($data)
                         </span>
 
                         <span class="book">
-                            <?= e($activity["book"]) ?>
-                            -
-                            <?= e($activity["time"]) ?>
+                            <?= e($activity["book"]) ?> - <?= e($activity["time"]) ?>
                         </span>
 
                         <span class="status <?= e($activity["statusClass"]) ?>">
@@ -290,19 +393,22 @@ function e($data)
             </div>
 
 
-            <!-- NÚT CHỨC NĂNG -->
+            <!-- NÚT CHỨC NĂNG (nối logic ở bước sau) -->
 
             <div class="actions">
 
-                <button>
+                <button
+                    type="button"
+                    onclick="document.getElementById('adjustForm').style.display='block';"
+                >
                     ĐIỀU CHỈNH SÁCH
                 </button>
 
-                <button>
+                <button type="button">
                     DANH MỤC SÁCH
                 </button>
 
-                <button>
+                <button type="button">
                     TƯƠNG TÁC ADMIN
                 </button>
 
@@ -311,12 +417,38 @@ function e($data)
         </section>
 
 
-        <!-- ================= THỐNG KÊ CUỐI ================= -->
+        <!-- FORM ĐIỀU CHỈNH TỔNG SỐ SÁCH (ẩn mặc định) -->
+
+        <section id="adjustForm" class="adjust-form">
+
+            <h3>
+                ĐIỀU CHỈNH TỔNG SỐ SÁCH
+            </h3>
+
+            <form method="POST">
+
+                <input type="hidden" name="action" value="update_books">
+
+                <input
+                    type="number"
+                    name="totalBooks"
+                    min="0"
+                    value="<?= e($totalBooks) ?>"
+                    required
+                >
+
+                <button type="submit">
+                    LƯU THAY ĐỔI
+                </button>
+
+            </form>
+
+        </section>
+
+
+        <!-- THỐNG KÊ CUỐI -->
 
         <section class="bottom-stat">
-
-
-            <!-- SỐ LƯỢT MƯỢN -->
 
             <div class="bottom-item">
 
@@ -331,8 +463,6 @@ function e($data)
             </div>
 
 
-            <!-- SỐ SÁCH MẤT -->
-
             <div class="bottom-item">
 
                 <h3>
@@ -345,8 +475,6 @@ function e($data)
 
             </div>
 
-
-            <!-- SỐ SÁCH HỎNG -->
 
             <div class="bottom-item">
 
@@ -361,6 +489,7 @@ function e($data)
             </div>
 
         </section>
+
 
     </main>
 
