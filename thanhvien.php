@@ -496,17 +496,21 @@ if (
 ================================================== */
 
 body {
-
-    background: #202020;
-
-    font-family:
-        Arial,
-        Helvetica,
-        sans-serif;
-
-    color: #222;
+    padding-top: 18px;
+    padding-bottom: 30px;
+    min-height: 100vh;
+    background-color: #17181a;
+    background-image:
+        linear-gradient(
+            rgba(10, 10, 12, 0.78),
+            rgba(10, 10, 12, 0.78)
+        ),
+        url("bg-thuvien.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
 }
-
 
 /* ==================================================
    KHUNG CHÍNH
