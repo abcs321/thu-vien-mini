@@ -119,20 +119,21 @@ $pageTitle = "Trang chủ - Thư viện";
     <style>
 
         body {
-            padding-top: 18px;
-        }
-
-
-        /* NHÃN "giao diện admin/thủ thư" */
-
-        .admin-label {
-            width: 700px;
-            max-width: 95%;
-            margin: 0 auto 10px;
-            font-size: 13px;
-            font-weight: 600;
-            color: #eee;
-        }
+    padding-top: 18px;
+    padding-bottom: 30px;
+    min-height: 100vh;
+    background-color: #17181a;
+    background-image:
+        linear-gradient(
+            rgba(10, 10, 12, 0.78),
+            rgba(10, 10, 12, 0.78)
+        ),
+        url("bg-thuvien.jpg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
 
 
         /* HEADER RIÊNG CHO TRANG QUẢN TRỊ (rút gọn menu) */
