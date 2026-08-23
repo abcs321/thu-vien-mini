@@ -1,86 +1,20 @@
 <?php
-
+ 
 session_start();
-
-
+ 
+ 
 // =====================================================
-// 1. KHỞI TẠO DỮ LIỆU THÀNH VIÊN
+// 1. KẾT NỐI CSDL
 // =====================================================
+ 
+require_once __DIR__ . '/database.php';
 
-// Đánh version cho dữ liệu mẫu: mỗi khi đổi nội dung mẫu bên dưới,
-// tăng số này lên để session cũ (thiếu dữ liệu) tự làm mới,
-// không cần người dùng phải tự xoá cookie/session thủ công.
-define('MEMBERS_SAMPLE_VERSION', 2);
-
-if (
-    !isset($_SESSION['members']) ||
-    !isset($_SESSION['members_version']) ||
-    $_SESSION['members_version'] !== MEMBERS_SAMPLE_VERSION
-) {
-
-    $_SESSION['members_version'] = MEMBERS_SAMPLE_VERSION;
-
-    $_SESSION['members'] = [
-
-        [
-            'id' => 1,
-            'name' => 'Lê Hà Nam',
-            'code' => '23456WR',
-            'date' => '10/08/2026',
-            'expire' => '20/10/2026',
-            'birthday' => '15/03/1998',
-            'email' => 'lehanam@gmail.com',
-            'city' => 'Hà Nội',
-            'ward' => 'Cầu Giấy',
-            'address' => 'Số 12 ngõ 45 Trần Thái Tông',
-            'card_number' => '4111111111111111',
-            'card_code' => 'VCB4521',
-            'cvv' => '123',
-            'expired_card' => '09/28'
-        ],
-
-        [
-            'id' => 2,
-            'name' => 'Hà Vy',
-            'code' => '444440P',
-            'date' => '11/09/2025',
-            'expire' => '20/12/2026',
-            'birthday' => '22/07/2000',
-            'email' => 'havy@gmail.com',
-            'city' => 'Hà Nội',
-            'ward' => 'Đống Đa',
-            'address' => 'Số 8 phố Tây Sơn',
-            'card_number' => '5500005555555559',
-            'card_code' => 'TCB1187',
-            'cvv' => '456',
-            'expired_card' => '11/27'
-        ],
-
-        [
-            'id' => 3,
-            'name' => 'Vũ khánh',
-            'code' => '5959GHY',
-            'date' => '16/11/2019',
-            'expire' => '15/09/2026',
-            'birthday' => '05/12/1995',
-            'email' => 'vukhanh@gmail.com',
-            'city' => 'Hà Nội',
-            'ward' => 'Ba Đình',
-            'address' => 'Số 20 phố Đội Cấn',
-            'card_number' => '4000123456789010',
-            'card_code' => 'MB9032',
-            'cvv' => '789',
-            'expired_card' => '02/29'
-        ]
-
-    ];
-}
-
-
+ 
+ 
 // =====================================================
 // 2. HÀM CHỐNG XSS
 // =====================================================
-
+ 
 function e($value)
 {
     return htmlspecialchars(
@@ -89,390 +23,383 @@ function e($value)
         'UTF-8'
     );
 }
-
-
+ 
+ 
 // =====================================================
-// 3. LẤY DANH SÁCH THÀNH VIÊN
+// 3. HÀM CHUYỂN ĐỔI ĐỊNH DẠNG NGÀY
 // =====================================================
-
-$members = $_SESSION['members'];
-
-
-// =====================================================
-// 4. TÌM KIẾM
-// =====================================================
-
-$keyword = trim($_GET['search'] ?? '');
-
-
-// =====================================================
-// 5. LỌC THÀNH VIÊN BẰNG PHP
-// =====================================================
-
-$displayMembers = [];
-
-foreach ($members as $member) {
-
-    if ($keyword === '') {
-
-        $displayMembers[] = $member;
-
-    } else {
-
-        $searchText =
-            $member['name'] . ' ' .
-            $member['code'] . ' ' .
-            $member['date'] . ' ' .
-            $member['expire'];
-
-        if (
-            stripos(
-                $searchText,
-                $keyword
-            ) !== false
-        ) {
-
-            $displayMembers[] = $member;
-
-        }
-
+ 
+// CSDL lưu ngày dạng Y-m-d, form hiển thị/nhập dạng d/m/Y
+ 
+function to_display_date(?string $d): string
+{
+    if (!$d) {
+        return '';
     }
+ 
+    $t = DateTime::createFromFormat('Y-m-d', $d);
+ 
+    return $t ? $t->format('d/m/Y') : '';
 }
-
-
-// =====================================================
-// 6. XÁC ĐỊNH THÀNH VIÊN ĐƯỢC CHỌN
-// =====================================================
-
-$selectedMember = $members[0];
-
-
-// Nếu người dùng bấm "Thay đổi"
-if (isset($_GET['id'])) {
-
-    $id = (int)$_GET['id'];
-
-    foreach ($members as $member) {
-
-        if ($member['id'] === $id) {
-
-            $selectedMember = $member;
-
-            break;
-        }
+ 
+function to_db_date(string $d): ?string
+{
+    if ($d === '') {
+        return null;
     }
+ 
+    $t = DateTime::createFromFormat('d/m/Y', $d);
+ 
+    return ($t && $t->format('d/m/Y') === $d)
+        ? $t->format('Y-m-d')
+        : null;
 }
-
-
-// =====================================================
-// 7. THÔNG BÁO
-// =====================================================
-
+ 
+ 
 $message = '';
-
-
+ 
+ 
 // =====================================================
-// 8. XỬ LÝ FORM CẬP NHẬT THÀNH VIÊN
+// 4. XÓA THÀNH VIÊN
 // =====================================================
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-    $id = (int)($_POST['id'] ?? 0);
-
-    $name = trim($_POST['name'] ?? '');
-    $birthday = trim($_POST['birthday'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-
-    $city = trim($_POST['city'] ?? '');
-    $ward = trim($_POST['ward'] ?? '');
-    $address = trim($_POST['address'] ?? '');
-
-    $card_number = trim($_POST['card_number'] ?? '');
-    $card_code = trim($_POST['card_code'] ?? '');
-    $cvv = trim($_POST['cvv'] ?? '');
-    $expired_card = trim($_POST['expired_card'] ?? '');
-
-    $errors = [];
-
-
-    // =================================================
-    // KIỂM TRA HỌ TÊN
-    // =================================================
-
-    if ($name === '') {
-
-        $errors[] = 'Họ và tên không được để trống.';
-
-    } elseif (mb_strlen($name, 'UTF-8') < 2) {
-
-        $errors[] = 'Họ và tên phải có ít nhất 2 ký tự.';
-
-    }
-
-
-    // =================================================
-    // KIỂM TRA EMAIL
-    // =================================================
-
-    if ($email !== '') {
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-
-            $errors[] = 'Email không đúng định dạng.';
-
-        }
-
-    }
-
-
-    // =================================================
-    // KIỂM TRA NGÀY SINH
-    // =================================================
-
-    if ($birthday !== '') {
-
-        $dateObject = DateTime::createFromFormat(
-            'd/m/Y',
-            $birthday
-        );
-
-        if (
-            !$dateObject ||
-            $dateObject->format('d/m/Y') !== $birthday
-        ) {
-
-            $errors[] =
-                'Ngày sinh phải có dạng dd/mm/yyyy.';
-
-        }
-
-    }
-
-
-    // =================================================
-    // KIỂM TRA SỐ THẺ
-    // =================================================
-
-    if ($card_number !== '') {
-
-        $cleanCard =
-            str_replace(' ', '', $card_number);
-
-        if (!ctype_digit($cleanCard)) {
-
-            $errors[] =
-                'Số thẻ chỉ được chứa chữ số.';
-
-        } elseif (
-            strlen($cleanCard) < 12 ||
-            strlen($cleanCard) > 19
-        ) {
-
-            $errors[] =
-                'Số thẻ phải từ 12 đến 19 chữ số.';
-
-        }
-
-    }
-
-
-    // =================================================
-    // KIỂM TRA CVV
-    // =================================================
-
-    if ($cvv !== '') {
-
-        if (!ctype_digit($cvv)) {
-
-            $errors[] =
-                'Mã CVV chỉ được chứa chữ số.';
-
-        } elseif (
-            strlen($cvv) < 3 ||
-            strlen($cvv) > 4
-        ) {
-
-            $errors[] =
-                'Mã CVV phải có 3 hoặc 4 chữ số.';
-
-        }
-
-    }
-
-
-    // =================================================
-    // NẾU KHÔNG CÓ LỖI
-    // =================================================
-
-    if (empty($errors)) {
-
-        foreach (
-            $_SESSION['members']
-            as &$member
-        ) {
-
-            if ($member['id'] === $id) {
-
-                $member['name'] = $name;
-                $member['birthday'] = $birthday;
-                $member['email'] = $email;
-
-                $member['city'] = $city;
-                $member['ward'] = $ward;
-                $member['address'] = $address;
-
-                $member['card_number'] =
-                    $card_number;
-
-                $member['card_code'] =
-                    $card_code;
-
-                $member['cvv'] =
-                    $cvv;
-
-                $member['expired_card'] =
-                    $expired_card;
-
-                break;
-            }
-        }
-
-        unset($member);
-
-
-        $message =
-            'Cập nhật thông tin thành viên thành công.';
-
-
-        $members = $_SESSION['members'];
-
-
-        // Lấy lại thành viên vừa sửa
-
-        foreach ($members as $member) {
-
-            if ($member['id'] === $id) {
-
-                $selectedMember =
-                    $member;
-
-                break;
-            }
-        }
-
-    } else {
-
-        $message =
-            implode('<br>', $errors);
-
-        // Giữ lại dữ liệu người dùng vừa nhập
-        $selectedMember = [
-
-            'id' => $id,
-
-            'name' => $name,
-
-            'code' => '',
-
-            'date' => '',
-
-            'expire' => '',
-
-            'birthday' => $birthday,
-
-            'email' => $email,
-
-            'city' => $city,
-
-            'ward' => $ward,
-
-            'address' => $address,
-
-            'card_number' => $card_number,
-
-            'card_code' => $card_code,
-
-            'cvv' => $cvv,
-
-            'expired_card' => $expired_card
-
-        ];
-
-    }
-
-}
-
-
-// =====================================================
-// 9. XÓA THÀNH VIÊN
-// =====================================================
-
+ 
 if (
     isset($_GET['delete']) &&
     is_numeric($_GET['delete'])
 ) {
-
+ 
     $deleteId = (int)$_GET['delete'];
-
-    foreach (
-        $_SESSION['members']
-        as $key => $member
-    ) {
-
-        if ($member['id'] === $deleteId) {
-
-            unset(
-                $_SESSION['members'][$key]
-            );
-
+ 
+    $stmt = $conn->prepare(
+        "DELETE FROM doc_gia WHERE id = :id"
+    );
+ 
+    $stmt->execute([':id' => $deleteId]);
+ 
+    $message = 'Đã xóa thành viên thành công.';
+}
+ 
+ 
+// =====================================================
+// 5. XỬ LÝ FORM CẬP NHẬT THÀNH VIÊN
+// =====================================================
+ 
+$id = 0;
+ 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+ 
+    $id = (int)($_POST['id'] ?? 0);
+ 
+    $name = trim($_POST['name'] ?? '');
+    $birthday = trim($_POST['birthday'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+ 
+    $city = trim($_POST['city'] ?? '');
+    $ward = trim($_POST['ward'] ?? '');
+    $address = trim($_POST['address'] ?? '');
+ 
+    $card_number = trim($_POST['card_number'] ?? '');
+    $card_code = trim($_POST['card_code'] ?? '');
+    $cvv = trim($_POST['cvv'] ?? '');
+    $expired_card = trim($_POST['expired_card'] ?? '');
+ 
+    $errors = [];
+ 
+ 
+    // =================================================
+    // KIỂM TRA HỌ TÊN
+    // =================================================
+ 
+    if ($name === '') {
+ 
+        $errors[] = 'Họ và tên không được để trống.';
+ 
+    } elseif (mb_strlen($name, 'UTF-8') < 2) {
+ 
+        $errors[] = 'Họ và tên phải có ít nhất 2 ký tự.';
+ 
+    }
+ 
+ 
+    // =================================================
+    // KIỂM TRA EMAIL
+    // =================================================
+ 
+    if ($email !== '') {
+ 
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+ 
+            $errors[] = 'Email không đúng định dạng.';
+ 
+        }
+ 
+    }
+ 
+ 
+    // =================================================
+    // KIỂM TRA NGÀY SINH
+    // =================================================
+ 
+    if ($birthday !== '') {
+ 
+        $dateObject = DateTime::createFromFormat(
+            'd/m/Y',
+            $birthday
+        );
+ 
+        if (
+            !$dateObject ||
+            $dateObject->format('d/m/Y') !== $birthday
+        ) {
+ 
+            $errors[] =
+                'Ngày sinh phải có dạng dd/mm/yyyy.';
+ 
+        }
+ 
+    }
+ 
+ 
+    // =================================================
+    // KIỂM TRA SỐ THẺ
+    // =================================================
+ 
+    if ($card_number !== '') {
+ 
+        $cleanCard =
+            str_replace(' ', '', $card_number);
+ 
+        if (!ctype_digit($cleanCard)) {
+ 
+            $errors[] =
+                'Số thẻ chỉ được chứa chữ số.';
+ 
+        } elseif (
+            strlen($cleanCard) < 12 ||
+            strlen($cleanCard) > 19
+        ) {
+ 
+            $errors[] =
+                'Số thẻ phải từ 12 đến 19 chữ số.';
+ 
+        }
+ 
+    }
+ 
+ 
+    // =================================================
+    // KIỂM TRA CVV
+    // =================================================
+ 
+    if ($cvv !== '') {
+ 
+        if (!ctype_digit($cvv)) {
+ 
+            $errors[] =
+                'Mã CVV chỉ được chứa chữ số.';
+ 
+        } elseif (
+            strlen($cvv) < 3 ||
+            strlen($cvv) > 4
+        ) {
+ 
+            $errors[] =
+                'Mã CVV phải có 3 hoặc 4 chữ số.';
+ 
+        }
+ 
+    }
+ 
+ 
+    // =================================================
+    // NẾU KHÔNG CÓ LỖI -> CẬP NHẬT VÀO CSDL
+    // =================================================
+ 
+    if (empty($errors)) {
+ 
+        $sql = "
+            UPDATE doc_gia
+            SET
+                ho_ten = :ho_ten,
+                ngay_sinh = :ngay_sinh,
+                email = :email,
+                thanh_pho = :thanh_pho,
+                xa = :xa,
+                dia_chi = :dia_chi,
+                so_the = :so_the,
+                ma_the = :ma_the,
+                cvv = :cvv,
+                han_the = :han_the
+            WHERE id = :id
+        ";
+ 
+        $stmt = $conn->prepare($sql);
+ 
+        $stmt->execute([
+            ':ho_ten' => $name,
+            ':ngay_sinh' => to_db_date($birthday),
+            ':email' => $email !== '' ? $email : null,
+            ':thanh_pho' => $city !== '' ? $city : null,
+            ':xa' => $ward !== '' ? $ward : null,
+            ':dia_chi' => $address !== '' ? $address : null,
+            ':so_the' => $card_number !== '' ? $card_number : null,
+            ':ma_the' => $card_code !== '' ? $card_code : null,
+            ':cvv' => $cvv !== '' ? $cvv : null,
+            ':han_the' => $expired_card !== '' ? $expired_card : null,
+            ':id' => $id,
+        ]);
+ 
+        $message =
+            'Cập nhật thông tin thành viên thành công.';
+ 
+    } else {
+ 
+        $message =
+            implode('<br>', $errors);
+ 
+    }
+ 
+}
+ 
+ 
+// =====================================================
+// 6. TÌM KIẾM
+// =====================================================
+ 
+$keyword = trim($_GET['search'] ?? '');
+ 
+ 
+// =====================================================
+// 7. LẤY DANH SÁCH THÀNH VIÊN TỪ CSDL
+// =====================================================
+ 
+if ($keyword === '') {
+ 
+    $sql = "
+        SELECT
+            id, ho_ten, ma_doc_gia,
+            ngay_tham_gia, ngay_het_han,
+            ngay_sinh, email,
+            thanh_pho, xa, dia_chi,
+            so_the, ma_the, cvv, han_the
+        FROM doc_gia
+        ORDER BY id ASC
+    ";
+ 
+    $stmt = $conn->query($sql);
+ 
+} else {
+ 
+    $sql = "
+        SELECT
+            id, ho_ten, ma_doc_gia,
+            ngay_tham_gia, ngay_het_han,
+            ngay_sinh, email,
+            thanh_pho, xa, dia_chi,
+            so_the, ma_the, cvv, han_the
+        FROM doc_gia
+        WHERE
+            ho_ten LIKE :kw
+            OR ma_doc_gia LIKE :kw
+        ORDER BY id ASC
+    ";
+ 
+    $stmt = $conn->prepare($sql);
+ 
+    $stmt->execute([':kw' => '%' . $keyword . '%']);
+ 
+}
+ 
+$rows = $stmt->fetchAll();
+ 
+$displayMembers = [];
+ 
+foreach ($rows as $row) {
+ 
+    $displayMembers[] = [
+        'id' => (int)$row['id'],
+        'name' => $row['ho_ten'],
+        'code' => $row['ma_doc_gia'],
+        'date' => to_display_date($row['ngay_tham_gia']),
+        'expire' => to_display_date($row['ngay_het_han']),
+        'birthday' => to_display_date($row['ngay_sinh']),
+        'email' => $row['email'] ?? '',
+        'city' => $row['thanh_pho'] ?? '',
+        'ward' => $row['xa'] ?? '',
+        'address' => $row['dia_chi'] ?? '',
+        'card_number' => $row['so_the'] ?? '',
+        'card_code' => $row['ma_the'] ?? '',
+        'cvv' => $row['cvv'] ?? '',
+        'expired_card' => $row['han_the'] ?? '',
+    ];
+ 
+}
+ 
+ 
+// =====================================================
+// 8. XÁC ĐỊNH THÀNH VIÊN ĐƯỢC CHỌN (HIỂN THỊ TRONG FORM)
+// =====================================================
+ 
+$emptyMember = [
+    'id' => 0,
+    'name' => '',
+    'code' => '',
+    'date' => '',
+    'expire' => '',
+    'birthday' => '',
+    'email' => '',
+    'city' => '',
+    'ward' => '',
+    'address' => '',
+    'card_number' => '',
+    'card_code' => '',
+    'cvv' => '',
+    'expired_card' => ''
+];
+ 
+$selectedMember = $displayMembers[0] ?? $emptyMember;
+ 
+$focusId = $id !== 0 ? $id : (int)($_GET['id'] ?? 0);
+ 
+if ($focusId !== 0) {
+ 
+    foreach ($displayMembers as $member) {
+ 
+        if ($member['id'] === $focusId) {
+ 
+            $selectedMember = $member;
+ 
+            break;
         }
     }
-
-    $_SESSION['members'] =
-        array_values(
-            $_SESSION['members']
-        );
-
-    $members =
-        $_SESSION['members'];
-
-    $displayMembers =
-        $members;
-
-    $message =
-        'Đã xóa thành viên thành công.';
-
-    if (!empty($members)) {
-
-        $selectedMember =
-            $members[0];
-
-    } else {
-
-        $selectedMember = [
-
-            'id' => 0,
-            'name' => '',
-            'code' => '',
-            'date' => '',
-            'expire' => '',
-            'birthday' => '',
-            'email' => '',
-            'city' => '',
-            'ward' => '',
-            'address' => '',
-            'card_number' => '',
-            'card_code' => '',
-            'cvv' => '',
-            'expired_card' => ''
-
-        ];
-
-    }
 }
-
+ 
+// Nếu vừa submit form mà bị lỗi validate -> giữ lại dữ liệu người dùng vừa nhập
+if (
+    $_SERVER['REQUEST_METHOD'] === 'POST' &&
+    !empty($errors)
+) {
+ 
+    $selectedMember = [
+        'id' => $id,
+        'name' => $name,
+        'code' => $selectedMember['code'] ?? '',
+        'date' => $selectedMember['date'] ?? '',
+        'expire' => $selectedMember['expire'] ?? '',
+        'birthday' => $birthday,
+        'email' => $email,
+        'city' => $city,
+        'ward' => $ward,
+        'address' => $address,
+        'card_number' => $card_number,
+        'card_code' => $card_code,
+        'cvv' => $cvv,
+        'expired_card' => $expired_card
+    ];
+ 
+}
+ 
 ?>
-
 <!DOCTYPE html>
 
 <html lang="vi">
