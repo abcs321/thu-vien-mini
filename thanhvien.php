@@ -8,7 +8,6 @@ session_start();
 // =====================================================
  
 require_once __DIR__ . '/database.php';
-
  
  
 // =====================================================
@@ -557,6 +556,53 @@ body {
 }
 
 /* ==================================================
+   PAGE NAV (TRANG CHỦ / SÁCH / THÀNH VIÊN)
+================================================== */
+
+.page-nav {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    background: #ffffff;
+
+    padding: 14px 30px;
+
+}
+
+.page-nav a {
+
+    text-decoration: none;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    letter-spacing: 0.4px;
+
+    color: #222;
+
+    text-transform: uppercase;
+
+}
+
+.page-nav a:hover {
+
+    color: #ef5350;
+
+}
+
+.page-nav a.active {
+
+    color: #ef5350;
+
+}
+
+
+/* ==================================================
    SEARCH
 ================================================== */
 
@@ -566,7 +612,7 @@ body {
 
     background: #242424;
 
-    padding: 11px 37px;
+    padding: 11px 20px;
 
 }
 
@@ -1156,7 +1202,21 @@ input {
          HEADER
     ================================================== -->
 
-    
+    <nav class="page-nav">
+
+        <a href="index.php">
+            Trang chủ
+        </a>
+
+        <a href="danh-sach-sach.php">
+            Sách
+        </a>
+
+        <a href="thanhvien.php" class="active">
+            Thành viên
+        </a>
+
+    </nav>
 
 
     <!-- ==================================================
