@@ -7,7 +7,18 @@ session_start();
 // 1. KHỞI TẠO DỮ LIỆU THÀNH VIÊN
 // =====================================================
 
-if (!isset($_SESSION['members'])) {
+// Đánh version cho dữ liệu mẫu: mỗi khi đổi nội dung mẫu bên dưới,
+// tăng số này lên để session cũ (thiếu dữ liệu) tự làm mới,
+// không cần người dùng phải tự xoá cookie/session thủ công.
+define('MEMBERS_SAMPLE_VERSION', 2);
+
+if (
+    !isset($_SESSION['members']) ||
+    !isset($_SESSION['members_version']) ||
+    $_SESSION['members_version'] !== MEMBERS_SAMPLE_VERSION
+) {
+
+    $_SESSION['members_version'] = MEMBERS_SAMPLE_VERSION;
 
     $_SESSION['members'] = [
 
@@ -17,15 +28,15 @@ if (!isset($_SESSION['members'])) {
             'code' => '23456WR',
             'date' => '10/08/2026',
             'expire' => '20/10/2026',
-            'birthday' => '',
-            'email' => '',
-            'city' => '',
-            'ward' => '',
-            'address' => '',
-            'card_number' => '',
-            'card_code' => '',
-            'cvv' => '',
-            'expired_card' => ''
+            'birthday' => '15/03/1998',
+            'email' => 'lehanam@gmail.com',
+            'city' => 'Hà Nội',
+            'ward' => 'Cầu Giấy',
+            'address' => 'Số 12 ngõ 45 Trần Thái Tông',
+            'card_number' => '4111111111111111',
+            'card_code' => 'VCB4521',
+            'cvv' => '123',
+            'expired_card' => '09/28'
         ],
 
         [
@@ -34,15 +45,15 @@ if (!isset($_SESSION['members'])) {
             'code' => '444440P',
             'date' => '11/09/2025',
             'expire' => '20/12/2026',
-            'birthday' => '',
-            'email' => '',
-            'city' => '',
-            'ward' => '',
-            'address' => '',
-            'card_number' => '',
-            'card_code' => '',
-            'cvv' => '',
-            'expired_card' => ''
+            'birthday' => '22/07/2000',
+            'email' => 'havy@gmail.com',
+            'city' => 'Hà Nội',
+            'ward' => 'Đống Đa',
+            'address' => 'Số 8 phố Tây Sơn',
+            'card_number' => '5500005555555559',
+            'card_code' => 'TCB1187',
+            'cvv' => '456',
+            'expired_card' => '11/27'
         ],
 
         [
@@ -51,15 +62,15 @@ if (!isset($_SESSION['members'])) {
             'code' => '5959GHY',
             'date' => '16/11/2019',
             'expire' => '15/09/2026',
-            'birthday' => '',
-            'email' => '',
-            'city' => '',
-            'ward' => '',
-            'address' => '',
-            'card_number' => '',
-            'card_code' => '',
-            'cvv' => '',
-            'expired_card' => ''
+            'birthday' => '05/12/1995',
+            'email' => 'vukhanh@gmail.com',
+            'city' => 'Hà Nội',
+            'ward' => 'Ba Đình',
+            'address' => 'Số 20 phố Đội Cấn',
+            'card_number' => '4000123456789010',
+            'card_code' => 'MB9032',
+            'cvv' => '789',
+            'expired_card' => '02/29'
         ]
 
     ];
@@ -530,47 +541,93 @@ body {
 
 
 /* ==================================================
-   MENU
+   HEADER
 ================================================== */
 
-.menu {
-
-    height: 41px;
-
-    background: #f5f5f5;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: space-around;
-
+.site-header {
+    width: 100%;
+    background: #ffffff;
+    border-bottom: 3px solid #ef5350;
 }
 
-
-.menu-item {
-
-    width: 33.33%;
-
-    height: 41px;
-
+.site-header-inner {
+    width: 1470px;
+    max-width: calc(100% - 60px);
+    height: 78px;
+    margin: 0 auto;
+    padding: 0;
     display: flex;
-
     align-items: center;
+    justify-content: space-between;
+    gap: 22px;
+}
 
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.brand-mark {
+    width: 43px;
+    height: 43px;
+    border-radius: 50%;
+    background: #ef5350;
+    display: flex;
+    align-items: center;
     justify-content: center;
-
-    font-size: 12px;
-
+    color: #ffffff;
 }
 
-
-.menu-item.active {
-
-    color: #ef6767;
-
+.brand-mark svg {
+    width: 22px;
+    height: 22px;
 }
 
+.brand-name {
+    font-size: 25px;
+    font-weight: 800;
+    letter-spacing: .5px;
+    white-space: nowrap;
+}
+
+.main-nav {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 18px;
+    flex: 1;
+}
+
+.main-nav a {
+    color: #333;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.main-nav a:hover,
+.main-nav a.active {
+    color: #ef5350;
+}
+
+@media (max-width: 760px) {
+    .site-header-inner {
+        height: auto;
+        min-height: 64px;
+        padding: 10px 15px;
+        flex-wrap: wrap;
+    }
+
+    .main-nav {
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+}
 
 /* ==================================================
    SEARCH
@@ -591,7 +648,7 @@ body {
 
     width: 100%;
 
-    height: 26px;
+    height: 34px;
 
     border: none;
 
@@ -601,7 +658,7 @@ body {
 
     padding: 0 28px;
 
-    font-size: 11px;
+    font-size: 14px;
 
 }
 
@@ -614,11 +671,11 @@ body {
 
     margin: 8px 10px 14px;
 
-    height: 166px;
+    height: 200px;
 
     background: #fff;
 
-    border: 2px solid #009cff;
+    border: none;
 
     padding: 14px 12px;
 
@@ -644,11 +701,11 @@ body {
 
 .member-table th {
 
-    height: 25px;
+    height: 30px;
 
     background: #b7b7b7;
 
-    font-size: 11px;
+    font-size: 13px;
 
     font-weight: normal;
 
@@ -671,14 +728,14 @@ body {
 
 .member-table td {
 
-    height: 38px;
+    height: 40px;
 
     border-bottom:
         1px solid #c9c9c9;
 
     text-align: center;
 
-    font-size: 10px;
+    font-size: 13px;
 
 }
 
@@ -752,7 +809,7 @@ label {
 
     display: block;
 
-    font-size: 11px;
+    font-size: 13px;
 
     margin-bottom: 5px;
 
@@ -778,9 +835,9 @@ input {
     padding:
         0 12px;
 
-    font-size: 11px;
+    font-size: 14px;
 
-    height: 32px;
+    height: 38px;
 
 }
 
@@ -1005,6 +1062,27 @@ input {
 ================================================== */
 
 @media (max-width: 760px) {
+    .site-header-inner {
+    width: 100%;
+    max-width: none;
+    padding: 0 15px;
+}
+
+.brand {
+    min-width: auto;
+}
+
+.brand-name {
+    font-size: 20px;
+}
+
+.main-nav {
+    gap: 12px;
+}
+
+.main-nav a {
+    font-size: 12px;
+}
 
     .page {
 
@@ -1076,37 +1154,82 @@ input {
 
 <body>
 
+<header class="site-header">
+
+    <div class="site-header-inner">
+
+        <!-- LOGO -->
+        <div class="brand">
+
+            <span class="brand-mark">
+
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <circle cx="10.5" cy="10.5" r="6.5"/>
+                    <line
+                        x1="15.3"
+                        y1="15.3"
+                        x2="20.5"
+                        y2="20.5"
+                    />
+                </svg>
+
+            </span>
+
+            <span class="brand-name">
+                THƯ VIỆN
+            </span>
+
+        </div>
+
+
+        <!-- MENU -->
+        <nav class="main-nav">
+
+            <a href="index.php">
+                TRANG CHỦ
+            </a>
+
+            <a href="#">
+                VỀ CHÚNG TÔI
+            </a>
+
+            <a href="danh-sach-sach.php" class="active">
+                DANH SÁCH SÁCH
+            </a>
+
+            <a href="#">
+                PHIẾU MƯỢN
+            </a>
+
+            <a href="#">
+                KHÁM PHÁ
+            </a>
+
+            <a href="#">
+                LIÊN LẠC
+            </a>
+
+        </nav>
+
+    </div>
+
+</header>
+
 
 <div class="page">
 
 
+
     <!-- ==================================================
-         MENU
+         HEADER
     ================================================== -->
 
-    <div class="menu">
-
-        <div class="menu-item">
-
-            TRANG CHỦ
-
-        </div>
-
-
-        <div class="menu-item">
-
-            SÁCH
-
-        </div>
-
-
-        <div class="menu-item active">
-
-            THÀNH VIÊN
-
-        </div>
-
-    </div>
+    
 
 
     <!-- ==================================================
