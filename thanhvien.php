@@ -2,17 +2,8 @@
  
 session_start();
  
- 
-// =====================================================
-// 1. KẾT NỐI CSDL
-// =====================================================
- 
 require_once __DIR__ . '/database.php';
  
- 
-// =====================================================
-// 2. HÀM CHỐNG XSS
-// =====================================================
  
 function e($value)
 {
@@ -22,13 +13,6 @@ function e($value)
         'UTF-8'
     );
 }
- 
- 
-// =====================================================
-// 3. HÀM CHUYỂN ĐỔI ĐỊNH DẠNG NGÀY
-// =====================================================
- 
-// CSDL lưu ngày dạng Y-m-d, form hiển thị/nhập dạng d/m/Y
  
 function to_display_date(?string $d): string
 {
@@ -58,9 +42,6 @@ function to_db_date(string $d): ?string
 $message = '';
  
  
-// =====================================================
-// 4. XÓA THÀNH VIÊN
-// =====================================================
  
 if (
     isset($_GET['delete']) &&
@@ -70,7 +51,7 @@ if (
     $deleteId = (int)$_GET['delete'];
  
     $stmt = $conn->prepare(
-        "DELETE FROM doc_gia WHERE id = :id"
+        "DELETE FROM doc_gia WHERE id_doc_gia = :id"
     );
  
     $stmt->execute([':id' => $deleteId]);
@@ -78,10 +59,6 @@ if (
     $message = 'Đã xóa thành viên thành công.';
 }
  
- 
-// =====================================================
-// 5. XỬ LÝ FORM CẬP NHẬT THÀNH VIÊN
-// =====================================================
  
 $id = 0;
  
@@ -102,12 +79,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $cvv = trim($_POST['cvv'] ?? '');
     $expired_card = trim($_POST['expired_card'] ?? '');
  
+    $username = trim($_POST['username'] ?? '');
+    $password = trim($_POST['password'] ?? '');
+ 
     $errors = [];
  
- 
-    // =================================================
-    // KIỂM TRA HỌ TÊN
-    // =================================================
  
     if ($name === '') {
  
@@ -120,9 +96,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
  
  
-    // =================================================
-    // KIỂM TRA EMAIL
-    // =================================================
  
     if ($email !== '') {
  
@@ -135,9 +108,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
  
  
-    // =================================================
-    // KIỂM TRA NGÀY SINH
-    // =================================================
  
     if ($birthday !== '') {
  
@@ -158,10 +128,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
  
     }
  
- 
-    // =================================================
-    // KIỂM TRA SỐ THẺ
-    // =================================================
  
     if ($card_number !== '') {
  
@@ -186,9 +152,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
  
  
-    // =================================================
-    // KIỂM TRA CVV
-    // =================================================
  
     if ($cvv !== '') {
  
@@ -208,14 +171,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
  
     }
- 
- 
-    // =================================================
-    // NẾU KHÔNG CÓ LỖI -> CẬP NHẬT VÀO CSDL
-    // =================================================
+
+
+    if ($username === '') {
+
+        $errors[] = 'Tên tài khoản không được để trống.';
+
+    } elseif (!preg_match('/^[A-Za-z0-9_]{3,50}$/', $username)) {
+
+        $errors[] =
+            'Tên tài khoản chỉ gồm chữ, số, dấu gạch dưới và từ 3-50 ký tự.';
+
+    } else {
+
+        $usernameCheck = $conn->prepare(
+            "SELECT id_doc_gia FROM doc_gia
+             WHERE ten_tai_khoan = :username AND id_doc_gia != :id"
+        );
+
+        $usernameCheck->execute([
+            ':username' => $username,
+            ':id' => $id,
+        ]);
+
+        if ($usernameCheck->fetchColumn()) {
+
+            $errors[] = 'Tên tài khoản đã được sử dụng.';
+
+        }
+
+    }
+
+
+    if ($password !== '' && mb_strlen($password, 'UTF-8') < 6) {
+
+        $errors[] = 'Mật khẩu phải có ít nhất 6 ký tự.';
+
+    }
+
  
     if (empty($errors)) {
  
+        $passwordSql = $password !== ''
+            ? ', mat_khau = :mat_khau'
+            : '';
+
         $sql = "
             UPDATE doc_gia
             SET
@@ -224,30 +224,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 email = :email,
                 thanh_pho = :thanh_pho,
                 xa = :xa,
-                dia_chi = :dia_chi,
-                so_the = :so_the,
-                ma_the = :ma_the,
-                cvv = :cvv,
-                han_the = :han_the
-            WHERE id = :id
+                dia_chi_chi_tiet = :dia_chi,
+                ten_tai_khoan = :ten_tai_khoan
+                {$passwordSql}
+            WHERE id_doc_gia = :id
         ";
- 
+
         $stmt = $conn->prepare($sql);
- 
-        $stmt->execute([
+
+        $params = [
             ':ho_ten' => $name,
             ':ngay_sinh' => to_db_date($birthday),
             ':email' => $email !== '' ? $email : null,
             ':thanh_pho' => $city !== '' ? $city : null,
             ':xa' => $ward !== '' ? $ward : null,
             ':dia_chi' => $address !== '' ? $address : null,
-            ':so_the' => $card_number !== '' ? $card_number : null,
-            ':ma_the' => $card_code !== '' ? $card_code : null,
-            ':cvv' => $cvv !== '' ? $cvv : null,
-            ':han_the' => $expired_card !== '' ? $expired_card : null,
+            ':ten_tai_khoan' => $username,
             ':id' => $id,
-        ]);
- 
+        ];
+
+        if ($password !== '') {
+            $params[':mat_khau'] = password_hash($password, PASSWORD_DEFAULT);
+        }
+
+        $stmt->execute($params);
+
+
+        if ($card_number !== '' && $cvv !== '' && $expired_card !== '') {
+
+            $cardStmt = $conn->prepare(
+                "SELECT id_the FROM the_thanh_toan
+                 WHERE id_doc_gia = :id
+                 ORDER BY id_the ASC LIMIT 1"
+            );
+            $cardStmt->execute([':id' => $id]);
+            $existingCardId = $cardStmt->fetchColumn();
+
+            if ($existingCardId) {
+
+                $cardUpdate = $conn->prepare(
+                    "UPDATE the_thanh_toan
+                     SET so_the = :so_the, ma_cvv = :ma_cvv, het_han = :het_han
+                     WHERE id_the = :id_the"
+                );
+
+                $cardUpdate->execute([
+                    ':so_the' => str_replace(' ', '', $card_number),
+                    ':ma_cvv' => $cvv,
+                    ':het_han' => $expired_card,
+                    ':id_the' => $existingCardId,
+                ]);
+
+            } else {
+
+                $cardInsert = $conn->prepare(
+                    "INSERT INTO the_thanh_toan (id_doc_gia, so_the, ma_cvv, het_han)
+                     VALUES (:id, :so_the, :ma_cvv, :het_han)"
+                );
+
+                $cardInsert->execute([
+                    ':id' => $id,
+                    ':so_the' => str_replace(' ', '', $card_number),
+                    ':ma_cvv' => $cvv,
+                    ':het_han' => $expired_card,
+                ]);
+
+            }
+
+        }
+
         $message =
             'Cập nhật thông tin thành viên thành công.';
  
@@ -260,53 +305,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
  
 }
  
- 
-// =====================================================
-// 6. TÌM KIẾM
-// =====================================================
- 
 $keyword = trim($_GET['search'] ?? '');
  
  
-// =====================================================
-// 7. LẤY DANH SÁCH THÀNH VIÊN TỪ CSDL
-// =====================================================
- 
 if ($keyword === '') {
- 
+
     $sql = "
         SELECT
-            id, ho_ten, ma_doc_gia,
-            ngay_tham_gia, ngay_het_han,
-            ngay_sinh, email,
-            thanh_pho, xa, dia_chi,
-            so_the, ma_the, cvv, han_the
-        FROM doc_gia
-        ORDER BY id ASC
+            dg.id_doc_gia AS id,
+            dg.ho_ten,
+            dg.ten_tai_khoan AS ma_doc_gia,
+            dg.ngay_dang_ky AS ngay_tham_gia,
+            NULL AS ngay_het_han,
+            dg.ngay_sinh, dg.email,
+            dg.thanh_pho, dg.xa, dg.dia_chi_chi_tiet AS dia_chi,
+            tt.so_the, NULL AS ma_the, tt.ma_cvv AS cvv, tt.het_han AS han_the
+        FROM doc_gia dg
+        LEFT JOIN the_thanh_toan tt
+            ON tt.id_the = (
+                SELECT MIN(id_the) FROM the_thanh_toan WHERE id_doc_gia = dg.id_doc_gia
+            )
+        ORDER BY dg.id_doc_gia ASC
     ";
- 
+
     $stmt = $conn->query($sql);
- 
+
 } else {
- 
+
     $sql = "
         SELECT
-            id, ho_ten, ma_doc_gia,
-            ngay_tham_gia, ngay_het_han,
-            ngay_sinh, email,
-            thanh_pho, xa, dia_chi,
-            so_the, ma_the, cvv, han_the
-        FROM doc_gia
+            dg.id_doc_gia AS id,
+            dg.ho_ten,
+            dg.ten_tai_khoan AS ma_doc_gia,
+            dg.ngay_dang_ky AS ngay_tham_gia,
+            NULL AS ngay_het_han,
+            dg.ngay_sinh, dg.email,
+            dg.thanh_pho, dg.xa, dg.dia_chi_chi_tiet AS dia_chi,
+            tt.so_the, NULL AS ma_the, tt.ma_cvv AS cvv, tt.het_han AS han_the
+        FROM doc_gia dg
+        LEFT JOIN the_thanh_toan tt
+            ON tt.id_the = (
+                SELECT MIN(id_the) FROM the_thanh_toan WHERE id_doc_gia = dg.id_doc_gia
+            )
         WHERE
-            ho_ten LIKE :kw
-            OR ma_doc_gia LIKE :kw
-        ORDER BY id ASC
+            dg.ho_ten LIKE :kw
+            OR dg.ten_tai_khoan LIKE :kw
+        ORDER BY dg.id_doc_gia ASC
     ";
- 
+
     $stmt = $conn->prepare($sql);
- 
+
     $stmt->execute([':kw' => '%' . $keyword . '%']);
- 
+
 }
  
 $rows = $stmt->fetchAll();
@@ -330,14 +380,12 @@ foreach ($rows as $row) {
         'card_code' => $row['ma_the'] ?? '',
         'cvv' => $row['cvv'] ?? '',
         'expired_card' => $row['han_the'] ?? '',
+        'username' => $row['ma_doc_gia'],
     ];
  
 }
  
  
-// =====================================================
-// 8. XÁC ĐỊNH THÀNH VIÊN ĐƯỢC CHỌN (HIỂN THỊ TRONG FORM)
-// =====================================================
  
 $emptyMember = [
     'id' => 0,
@@ -353,7 +401,8 @@ $emptyMember = [
     'card_number' => '',
     'card_code' => '',
     'cvv' => '',
-    'expired_card' => ''
+    'expired_card' => '',
+    'username' => ''
 ];
  
 $selectedMember = $displayMembers[0] ?? $emptyMember;
@@ -393,7 +442,8 @@ if (
         'card_number' => $card_number,
         'card_code' => $card_code,
         'cvv' => $cvv,
-        'expired_card' => $expired_card
+        'expired_card' => $expired_card,
+        'username' => $username
     ];
  
 }
@@ -417,9 +467,6 @@ if (
 
 <style>
 
-/* ==================================================
-   RESET
-================================================== */
 
 * {
     box-sizing: border-box;
@@ -427,10 +474,6 @@ if (
     padding: 0;
 }
 
-
-/* ==================================================
-   BODY
-================================================== */
 
 body {
     padding-top: 18px;
@@ -449,9 +492,6 @@ body {
     background-attachment: fixed;
 }
 
-/* ==================================================
-   KHUNG CHÍNH
-================================================== */
 
 .page {
 
@@ -465,10 +505,6 @@ body {
 
 }
 
-
-/* ==================================================
-   HEADER
-================================================== */
 
 .site-header {
     width: 100%;
@@ -555,9 +591,6 @@ body {
     }
 }
 
-/* ==================================================
-   PAGE NAV (TRANG CHỦ / SÁCH / THÀNH VIÊN)
-================================================== */
 
 .page-nav {
 
@@ -729,11 +762,6 @@ body {
     width: 18%;
 }
 
-
-/* ==================================================
-   NÚT THAY ĐỔI
-================================================== */
-
 .edit-button {
 
     display: inline-block;
@@ -756,9 +784,6 @@ body {
 }
 
 
-/* ==================================================
-   FORM
-================================================== */
 
 .form-area {
 
@@ -774,10 +799,6 @@ body {
 }
 
 
-/* ==================================================
-   LABEL
-================================================== */
-
 label {
 
     display: block;
@@ -788,10 +809,6 @@ label {
 
 }
 
-
-/* ==================================================
-   INPUT
-================================================== */
 
 input {
 
@@ -814,10 +831,6 @@ input {
 
 }
 
-
-/* ==================================================
-   ROW
-================================================== */
 
 .row {
 
@@ -844,6 +857,221 @@ input {
 
     width: 218px;
 
+    position: relative;
+
+}
+
+
+.date-input-wrap {
+
+    position: relative;
+
+}
+
+
+.date-input-wrap input {
+
+    width: 100%;
+
+    padding-right: 40px;
+
+}
+
+
+.date-picker-btn {
+
+    position: absolute;
+
+    top: 50%;
+
+    right: 8px;
+
+    transform: translateY(-50%);
+
+    width: 26px;
+
+    height: 26px;
+
+    border: none;
+
+    background: transparent;
+
+    cursor: pointer;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 0;
+
+    border-radius: 6px;
+
+}
+
+
+.date-picker-btn:hover {
+
+    background: #eaeaea;
+
+}
+
+
+.date-picker-btn svg {
+
+    width: 17px;
+
+    height: 17px;
+
+    stroke: #7a7a7a;
+
+}
+
+
+.calendar-popup {
+
+    display: none;
+
+    position: absolute;
+
+    top: calc(100% + 6px);
+
+    left: 0;
+
+    z-index: 20;
+
+    width: 240px;
+
+    background: #fff;
+
+    border-radius: 10px;
+
+    box-shadow: 0 4px 14px rgba(0,0,0,.2);
+
+    padding: 12px;
+
+}
+
+
+.calendar-popup.open {
+
+    display: block;
+
+}
+
+
+.calendar-header {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    margin-bottom: 10px;
+
+}
+
+
+.calendar-header span {
+
+    font-size: 13px;
+
+    font-weight: bold;
+
+}
+
+
+.calendar-nav {
+
+    border: none;
+
+    background: #ececec;
+
+    width: 24px;
+
+    height: 24px;
+
+    border-radius: 6px;
+
+    cursor: pointer;
+
+    font-size: 13px;
+
+    line-height: 1;
+
+}
+
+
+.calendar-nav:hover {
+
+    background: #d9d9d9;
+
+}
+
+
+.calendar-grid {
+
+    display: grid;
+
+    grid-template-columns: repeat(7, 1fr);
+
+    gap: 2px;
+
+}
+
+
+.calendar-grid .dow {
+
+    font-size: 11px;
+
+    text-align: center;
+
+    color: #999;
+
+    padding-bottom: 4px;
+
+}
+
+
+.calendar-day {
+
+    border: none;
+
+    background: transparent;
+
+    height: 26px;
+
+    font-size: 12px;
+
+    border-radius: 6px;
+
+    cursor: pointer;
+
+}
+
+
+.calendar-day:hover {
+
+    background: #ececec;
+
+}
+
+
+.calendar-day.muted {
+
+    color: #ccc;
+
+}
+
+
+.calendar-day.selected {
+
+    background: #6f6f6f;
+
+    color: #fff;
+
 }
 
 
@@ -854,10 +1082,6 @@ input {
 
 }
 
-
-/* ==================================================
-   EMAIL
-================================================== */
 
 .full {
 
@@ -873,11 +1097,6 @@ input {
     width: 100%;
 
 }
-
-
-/* ==================================================
-   NƠI SỐNG
-================================================== */
 
 .living {
 
@@ -916,9 +1135,28 @@ input {
 }
 
 
-/* ==================================================
-   ĐƯỜNG KẺ
-================================================== */
+.account {
+
+    margin-bottom: 33px;
+
+}
+
+
+.account-row {
+
+    display: flex;
+
+    gap: 20px;
+
+}
+
+
+.account-row input {
+
+    flex: 1;
+
+}
+
 
 .line {
 
@@ -931,11 +1169,6 @@ input {
         16px;
 
 }
-
-
-/* ==================================================
-   PAYMENT
-================================================== */
 
 .payment {
 
@@ -952,10 +1185,6 @@ input {
 
 }
 
-
-/* ==================================================
-   PAYMENT ROW
-================================================== */
 
 .payment-row {
 
@@ -974,11 +1203,6 @@ input {
     width: 190px;
 
 }
-
-
-/* ==================================================
-   BUTTON
-================================================== */
 
 .save-button {
 
@@ -1005,11 +1229,6 @@ input {
 
 }
 
-
-/* ==================================================
-   THÔNG BÁO
-================================================== */
-
 .message {
 
     margin:
@@ -1028,11 +1247,6 @@ input {
     font-size: 12px;
 
 }
-
-
-/* ==================================================
-   MOBILE
-================================================== */
 
 @media (max-width: 760px) {
     .site-header-inner {
@@ -1096,9 +1310,17 @@ input {
     }
 
 
-    .living-row {
+    .living-row,
+    .account-row {
 
         flex-wrap: wrap;
+
+    }
+
+
+    .account-row input {
+
+        min-width: 100%;
 
     }
 
@@ -1197,11 +1419,6 @@ input {
 <div class="page">
 
 
-
-    <!-- ==================================================
-         HEADER
-    ================================================== -->
-
     <nav class="page-nav">
 
         <a href="index.php">
@@ -1219,10 +1436,6 @@ input {
     </nav>
 
 
-    <!-- ==================================================
-         TÌM KIẾM
-    ================================================== -->
-
     <div class="search-area">
 
         <form method="GET">
@@ -1237,11 +1450,6 @@ input {
         </form>
 
     </div>
-
-
-    <!-- ==================================================
-         DANH SÁCH THÀNH VIÊN
-    ================================================== -->
 
     <div class="member-box">
 
@@ -1260,7 +1468,7 @@ input {
                     </th>
 
                     <th>
-                        Ngày tham gia/hết hạn
+                        Ngày tham gia
                     </th>
 
                     <th>
@@ -1320,12 +1528,6 @@ input {
                                 $member['date']
                             ) ?>
 
-                            -
-
-                            <?= e(
-                                $member['expire']
-                            ) ?>
-
                         </td>
 
 
@@ -1352,11 +1554,6 @@ input {
         </table>
 
     </div>
-
-
-    <!-- ==================================================
-         FORM
-    ================================================== -->
 
     <div class="form-area">
 
@@ -1417,14 +1614,44 @@ input {
                     </label>
 
 
-                    <input
-                        type="text"
-                        name="birthday"
-                        value="<?= e(
-                            $selectedMember['birthday']
-                        ) ?>"
-                        placeholder="dd/mm/yyyy"
-                    >
+                    <div class="date-input-wrap">
+
+                        <input
+                            type="text"
+                            name="birthday"
+                            id="birthdayInput"
+                            value="<?= e(
+                                $selectedMember['birthday']
+                            ) ?>"
+                            placeholder="dd/mm/yyyy"
+                            autocomplete="off"
+                        >
+
+                        <button
+                            type="button"
+                            class="date-picker-btn"
+                            id="birthdayPickerBtn"
+                            aria-label="Chọn ngày"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="3" y="5" width="18" height="16" rx="2" stroke-width="2"></rect>
+                                <path d="M8 3v4M16 3v4M3 10h18" stroke-width="2" stroke-linecap="round"></path>
+                            </svg>
+                        </button>
+
+                        <div class="calendar-popup" id="birthdayCalendar">
+
+                            <div class="calendar-header">
+                                <button type="button" class="calendar-nav" id="calPrev">‹</button>
+                                <span id="calTitle"></span>
+                                <button type="button" class="calendar-nav" id="calNext">›</button>
+                            </div>
+
+                            <div class="calendar-grid" id="calGrid"></div>
+
+                        </div>
+
+                    </div>
 
                 </div>
 
@@ -1491,6 +1718,42 @@ input {
                             $selectedMember['address']
                         ) ?>"
                         placeholder="địa chỉ chi tiết"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <!-- TÀI KHOẢN -->
+
+            <div class="account">
+
+                <label>
+                    tài khoản
+                </label>
+
+
+                <div class="account-row">
+
+
+                    <input
+                        type="text"
+                        name="username"
+                        value="<?= e(
+                            $selectedMember['username']
+                        ) ?>"
+                        placeholder="tên tài khoản"
+                        autocomplete="off"
+                    >
+
+
+                    <input
+                        type="password"
+                        name="password"
+                        value=""
+                        placeholder="mật khẩu (để trống nếu không đổi)"
+                        autocomplete="new-password"
                     >
 
                 </div>
@@ -1580,6 +1843,163 @@ input {
 
 </div>
 
+
+
+<script>
+(function () {
+
+    var input = document.getElementById('birthdayInput');
+    var btn = document.getElementById('birthdayPickerBtn');
+    var popup = document.getElementById('birthdayCalendar');
+    var titleEl = document.getElementById('calTitle');
+    var gridEl = document.getElementById('calGrid');
+    var prevBtn = document.getElementById('calPrev');
+    var nextBtn = document.getElementById('calNext');
+
+    if (!input || !btn || !popup) {
+        return;
+    }
+
+    var dowNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+    var monthNames = [
+        'Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4',
+        'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8',
+        'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'
+    ];
+
+    function parseInputDate() {
+
+        var m = input.value.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+
+        if (!m) {
+            return null;
+        }
+
+        var d = new Date(
+            parseInt(m[3], 10),
+            parseInt(m[2], 10) - 1,
+            parseInt(m[1], 10)
+        );
+
+        return isNaN(d.getTime()) ? null : d;
+    }
+
+    var selectedDate = parseInputDate();
+    var viewDate = selectedDate ? new Date(selectedDate) : new Date();
+    viewDate.setDate(1);
+
+    function pad(n) {
+        return n < 10 ? '0' + n : '' + n;
+    }
+
+    function render() {
+
+        titleEl.textContent =
+            monthNames[viewDate.getMonth()] + ' ' + viewDate.getFullYear();
+
+        gridEl.innerHTML = '';
+
+        dowNames.forEach(function (name) {
+            var el = document.createElement('div');
+            el.className = 'dow';
+            el.textContent = name;
+            gridEl.appendChild(el);
+        });
+
+        var firstOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+        var startOffset = firstOfMonth.getDay();
+        var gridStart = new Date(firstOfMonth);
+        gridStart.setDate(gridStart.getDate() - startOffset);
+
+        for (var i = 0; i < 42; i++) {
+
+            var cellDate = new Date(gridStart);
+            cellDate.setDate(gridStart.getDate() + i);
+
+            var cellBtn = document.createElement('button');
+            cellBtn.type = 'button';
+            cellBtn.className = 'calendar-day';
+            cellBtn.textContent = cellDate.getDate();
+
+            if (cellDate.getMonth() !== viewDate.getMonth()) {
+                cellBtn.classList.add('muted');
+            }
+
+            if (
+                selectedDate &&
+                cellDate.getFullYear() === selectedDate.getFullYear() &&
+                cellDate.getMonth() === selectedDate.getMonth() &&
+                cellDate.getDate() === selectedDate.getDate()
+            ) {
+                cellBtn.classList.add('selected');
+            }
+
+            (function (d) {
+                cellBtn.addEventListener('click', function () {
+                    selectedDate = d;
+                    input.value =
+                        pad(d.getDate()) + '/' +
+                        pad(d.getMonth() + 1) + '/' +
+                        d.getFullYear();
+                    closePopup();
+                });
+            })(cellDate);
+
+            gridEl.appendChild(cellBtn);
+        }
+    }
+
+    function openPopup() {
+        var current = parseInputDate();
+        if (current) {
+            selectedDate = current;
+            viewDate = new Date(current);
+            viewDate.setDate(1);
+        }
+        render();
+        popup.classList.add('open');
+    }
+
+    function closePopup() {
+        popup.classList.remove('open');
+    }
+
+    function togglePopup(e) {
+        e.stopPropagation();
+        if (popup.classList.contains('open')) {
+            closePopup();
+        } else {
+            openPopup();
+        }
+    }
+
+    btn.addEventListener('click', togglePopup);
+    input.addEventListener('focus', openPopup);
+
+    prevBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        viewDate.setMonth(viewDate.getMonth() - 1);
+        render();
+    });
+
+    nextBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        viewDate.setMonth(viewDate.getMonth() + 1);
+        render();
+    });
+
+    popup.addEventListener('click', function (e) {
+        e.stopPropagation();
+    });
+
+    document.addEventListener('click', function (e) {
+        if (!popup.contains(e.target) && e.target !== input && e.target !== btn) {
+            closePopup();
+        }
+    });
+
+})();
+</script>
 
 </body>
 
