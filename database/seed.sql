@@ -1,8 +1,32 @@
 USE thu_vien_mini;
 
-INSERT INTO doc_gia
-(ho_ten, mssv, lop, so_dien_thoai, ten_dang_nhap, mat_khau)
+-- =========================================
+-- DỮ LIỆU MẪU CHO BẢNG CHÍNH SÁCH
+-- =========================================
+
+INSERT INTO chinh_sach
+(
+    id_chinh_sach,
+    ten_chinh_sach,
+    gia_tri,
+    mo_ta
+)
 VALUES
-('Nguyễn Văn A', '224001801', 'CNTT1', '0912345678', 'nguyenvana', '123456'),
-('Trần Thị B', '224001802', 'CNTT1', '0987654321', 'tranthib', '123456'),
-('Lê Văn C', '224001803', 'CNTT2', '0901234567', 'levanc', '123456');
+(
+    1,
+    'so_ngay_muon_toi_da',
+    '14',
+    'Số ngày tối đa được mượn 1 cuốn sách'
+),
+(
+    2,
+    'so_sach_toi_da_moi_doc_gia',
+    '5',
+    'Số sách tối đa 1 độc giả được mượn cùng lúc'
+),
+(
+    3,
+    'tien_phat_moi_ngay',
+    '5000',
+    'Tiền phạt mỗi ngày trả trễ (VNĐ)'
+);
