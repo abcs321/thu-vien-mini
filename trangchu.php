@@ -112,6 +112,7 @@ $soSachHong = 0;   // MẪU
 ================================================== */
 
 body {
+    font-family: "Times New Roman", Times, serif;
     padding-top: 18px;
     padding-bottom: 30px;
     min-height: 100vh;
@@ -294,8 +295,6 @@ body {
 }
 
 .stat-card.highlight {
-    border: 2px solid #2f6fed;
-    box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.18);
 }
 
 .stat-label {
