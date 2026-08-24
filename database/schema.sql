@@ -1,0 +1,17 @@
+CREATE DATABASE IF NOT EXISTS thu_vien_mini
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+
+USE thu_vien_mini;
+
+CREATE TABLE IF NOT EXISTS doc_gia (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ho_ten VARCHAR(100) NOT NULL,
+    mssv VARCHAR(20) NOT NULL UNIQUE,
+    lop VARCHAR(50) NOT NULL,
+    so_dien_thoai VARCHAR(15) NOT NULL,
+    ten_dang_nhap VARCHAR(50) NOT NULL UNIQUE,
+    mat_khau VARCHAR(255) NOT NULL
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
