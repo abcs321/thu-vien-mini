@@ -1,5 +1,10 @@
 <?php
 
+session_start();
+
+require_once "db.php";
+
+
 // ==========================
 // KHỞI TẠO DỮ LIỆU
 // ==========================
@@ -8,6 +13,9 @@ $username = "";
 
 $errors = [];
 $success = "";
+
+// Đã đăng nhập từ trước (session cũ), không phải vừa submit form
+$isLoggedIn = isset($_SESSION["ten_tai_khoan"]);
 
 
 // ==========================
@@ -69,19 +77,46 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
     // ==========================
-    // NẾU KHÔNG CÓ LỖI
+    // NẾU KHÔNG CÓ LỖI ĐỊNH DẠNG -> KIỂM TRA TRONG DATABASE
     // ==========================
 
     if (empty($errors)) {
 
-        /*
-         * Hiện tại chưa kết nối MySQL.
-         * Sau này sẽ kiểm tra:
-         * username + password trong database.
-         */
+        $stmt = $pdo->prepare(
+            "SELECT id_doc_gia, ten_tai_khoan, mat_khau
+             FROM doc_gia
+             WHERE ten_tai_khoan = :username
+             LIMIT 1"
+        );
 
-        $success = "Thông tin đăng nhập hợp lệ.";
+        $stmt->execute(["username" => $username]);
 
+        $user = $stmt->fetch();
+
+
+        if (!$user || !password_verify($password, $user["mat_khau"])) {
+
+            $errors["login"] =
+                "Tên đăng nhập hoặc mật khẩu không đúng.";
+
+        } else {
+
+            // ==========================
+            // ĐĂNG NHẬP THÀNH CÔNG -> TẠO SESSION
+            // ==========================
+            // Phân biệt admin / user thường qua tên tài khoản:
+            // tài khoản có ten_tai_khoan = 'admin' sẽ là admin.
+
+            $vai_tro = ($user["ten_tai_khoan"] === "admin") ? "admin" : "user";
+
+            $_SESSION["id_doc_gia"]   = $user["id_doc_gia"];
+            $_SESSION["ten_tai_khoan"] = $user["ten_tai_khoan"];
+            $_SESSION["vai_tro"]      = $vai_tro;
+
+            $success = "Đăng nhập thành công! Xin chào " .
+                htmlspecialchars($user["ten_tai_khoan"]) .
+                ($vai_tro === "admin" ? " (admin)." : ".");
+        }
     }
 
 }
@@ -191,32 +226,45 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         <!-- NÚT ĐĂNG NHẬP -->
 
-        <a href="login.php" class="btn-login">
+        <?php if (isset($_SESSION["ten_tai_khoan"])): ?>
 
-            <svg
-                viewBox="0 0 24 24"
-                width="15"
-                height="15"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-            >
+            <span class="btn-login">
+                Xin chào, <?= htmlspecialchars($_SESSION["ten_tai_khoan"]) ?>
+                <?= ($_SESSION["vai_tro"] === "admin") ? " (admin)" : "" ?>
+                &nbsp;|&nbsp;
+                <a href="logout.php">Đăng xuất</a>
+            </span>
 
-                <circle
-                    cx="12"
-                    cy="8"
-                    r="3.4"
-                />
+        <?php else: ?>
 
-                <path
-                    d="M4.5 20c1.4-3.6 4.4-5.6 7.5-5.6s6.1 2 7.5 5.6"
-                />
+            <a href="login.php" class="btn-login">
 
-            </svg>
+                <svg
+                    viewBox="0 0 24 24"
+                    width="15"
+                    height="15"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
 
-            Đăng nhập
+                    <circle
+                        cx="12"
+                        cy="8"
+                        r="3.4"
+                    />
 
-        </a>
+                    <path
+                        d="M4.5 20c1.4-3.6 4.4-5.6 7.5-5.6s6.1 2 7.5 5.6"
+                    />
+
+                </svg>
+
+                Đăng nhập
+
+            </a>
+
+        <?php endif; ?>
 
     </div>
 
@@ -246,139 +294,173 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         <?php if ($success !== ""): ?>
 
+            <!-- Vừa submit form đăng nhập thành công -->
+
             <div class="success-message">
-                <?= htmlspecialchars($success) ?>
+                <?= $success ?>
+
+                <br>
+
+                <a href="index.php">Vào trang chủ</a>
             </div>
 
-        <?php endif; ?>
+        <?php elseif ($isLoggedIn): ?>
 
+            <!-- Đã có session đăng nhập từ trước, không hiện lại form -->
 
-        <!-- FORM -->
+            <div class="success-message">
+                Bạn đã đăng nhập với tài khoản
+                <?= htmlspecialchars($_SESSION["ten_tai_khoan"]) ?>
+                <?= ($_SESSION["vai_tro"] === "admin") ? " (admin)" : "" ?>.
 
-        <form
-            method="POST"
-            action=""
-        >
+                <br>
 
-
-            <!-- =====================
-                 TÊN ĐĂNG NHẬP
-                 ===================== -->
-
-            <div class="form-group">
-
-                <label for="username">
-                    Tên đăng nhập
-                </label>
-
-                <input
-                    type="text"
-                    id="username"
-                    name="username"
-                    value="<?= htmlspecialchars($username) ?>"
-                    placeholder="Nhập tên đăng nhập"
-                >
-
-                <?php if (isset($errors["username"])): ?>
-
-                    <div class="error-message">
-
-                        <?= htmlspecialchars(
-                            $errors["username"]
-                        ) ?>
-
-                    </div>
-
-                <?php endif; ?>
-
+                <a href="index.php">Vào trang chủ</a>
+                &nbsp;·&nbsp;
+                <a href="logout.php">Đăng xuất</a>
             </div>
 
+        <?php else: ?>
 
-            <!-- =====================
-                 MẬT KHẨU
-                 ===================== -->
+            <!-- Chưa đăng nhập -> hiện form như bình thường -->
 
-            <div class="form-group">
+            <?php if (isset($errors["login"])): ?>
 
-                <label for="password">
-                    Mật khẩu
-                </label>
+                <div class="error-message">
+                    <?= htmlspecialchars($errors["login"]) ?>
+                </div>
 
-                <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    placeholder="Nhập mật khẩu"
-                >
-
-                <?php if (isset($errors["password"])): ?>
-
-                    <div class="error-message">
-
-                        <?= htmlspecialchars(
-                            $errors["password"]
-                        ) ?>
-
-                    </div>
-
-                <?php endif; ?>
-
-            </div>
+            <?php endif; ?>
 
 
-            <!-- =====================
-                 GHI NHỚ
-                 ===================== -->
+            <!-- FORM -->
 
-            <div class="login-options">
+            <form
+                method="POST"
+                action=""
+            >
 
-                <label>
+
+                <!-- =====================
+                     TÊN ĐĂNG NHẬP
+                     ===================== -->
+
+                <div class="form-group">
+
+                    <label for="username">
+                        Tên đăng nhập
+                    </label>
 
                     <input
-                        type="checkbox"
-                        name="remember"
+                        type="text"
+                        id="username"
+                        name="username"
+                        value="<?= htmlspecialchars($username) ?>"
+                        placeholder="Nhập tên đăng nhập"
                     >
 
-                    Ghi nhớ đăng nhập
+                    <?php if (isset($errors["username"])): ?>
 
-                </label>
+                        <div class="error-message">
+
+                            <?= htmlspecialchars(
+                                $errors["username"]
+                            ) ?>
+
+                        </div>
+
+                    <?php endif; ?>
+
+                </div>
 
 
-                <a href="#">
-                    Quên mật khẩu?
-                </a>
+                <!-- =====================
+                     MẬT KHẨU
+                     ===================== -->
 
-            </div>
+                <div class="form-group">
+
+                    <label for="password">
+                        Mật khẩu
+                    </label>
+
+                    <input
+                        type="password"
+                        id="password"
+                        name="password"
+                        placeholder="Nhập mật khẩu"
+                    >
+
+                    <?php if (isset($errors["password"])): ?>
+
+                        <div class="error-message">
+
+                            <?= htmlspecialchars(
+                                $errors["password"]
+                            ) ?>
+
+                        </div>
+
+                    <?php endif; ?>
+
+                </div>
+
+
+                <!-- =====================
+                     GHI NHỚ
+                     ===================== -->
+
+                <div class="login-options">
+
+                    <label>
+
+                        <input
+                            type="checkbox"
+                            name="remember"
+                        >
+
+                        Ghi nhớ đăng nhập
+
+                    </label>
+
+
+                    <a href="#">
+                        Quên mật khẩu?
+                    </a>
+
+                </div>
+
+
+                <!-- =====================
+                     NÚT ĐĂNG NHẬP
+                     ===================== -->
+
+                <button
+                    type="submit"
+                    class="form-btn"
+                >
+                    ĐĂNG NHẬP
+                </button>
+
+
+            </form>
 
 
             <!-- =====================
-                 NÚT ĐĂNG NHẬP
+                 ĐĂNG KÝ
                  ===================== -->
 
-            <button
-                type="submit"
-                class="form-btn"
-            >
-                ĐĂNG NHẬP
-            </button>
+            <p class="register-link">
 
+                Chưa có tài khoản?
 
-        </form>
+                <a href="register.php">
+                    Đăng ký
+                </a>
 
+            </p>
 
-        <!-- =====================
-             ĐĂNG KÝ
-             ===================== -->
-
-        <p class="register-link">
-
-            Chưa có tài khoản?
-
-            <a href="register.php">
-                Đăng ký
-            </a>
-
-        </p>
+        <?php endif; ?>
 
 
     </div>

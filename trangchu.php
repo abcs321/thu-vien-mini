@@ -7,7 +7,7 @@ session_start();
 // 1. KẾT NỐI CSDL
 // =====================================================
 
-require_once __DIR__ . '/database.php';
+require_once __DIR__ . '/database2.php';
 
 
 // =====================================================
@@ -40,9 +40,8 @@ $soThanhVien = (int)$conn
 
 // Tổng lượt mượn cộng dồn từ trước tới nay (cột luot_muon có sẵn trong bảng sach)
 $tongLuotMuon = (int)$conn
-    ->query("SELECT COALESCE(SUM(luot_muon), 0) FROM sach")
+    ->query("SELECT COALESCE(SUM(so_luot_muon), 0) FROM sach")
     ->fetchColumn();
-
 
 // =====================================================
 // 4. SỐ LIỆU MẪU (CHƯA CÓ BẢNG TRONG CSDL)

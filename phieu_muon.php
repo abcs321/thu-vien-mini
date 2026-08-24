@@ -4,7 +4,7 @@
    1. KẾT NỐI DATABASE
 ========================================================= */
 
-require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/database.php';
 
 
 /* =========================================================
@@ -62,6 +62,10 @@ $nav = [
 ];
 $message = '';
 $messageType = '';
+
+/* ID phiếu mượn vừa tạo thành công trong lần submit này
+   (dùng để hiện nút "Xem phiếu đã xuất") */
+$phieuVuaTaoId = null;
 
 /* Giá trị giữ lại trên form */
 $tai_khoan = '';
@@ -161,12 +165,12 @@ if (
 
             $sql = "
                 SELECT
-                    id,
+                    id_doc_gia AS id,
                     ho_ten,
-                    ten_dang_nhap,
+                    ten_tai_khoan AS ten_dang_nhap,
                     mat_khau
                 FROM doc_gia
-                WHERE ten_dang_nhap = :tai_khoan
+                WHERE ten_tai_khoan = :tai_khoan
                 LIMIT 1
             ";
 
@@ -220,11 +224,11 @@ if (
 
                 $sql = "
                     SELECT
-                        id,
+                        id_sach AS id,
                         ten_sach,
                         so_luong
                     FROM sach
-                    WHERE id = :id_sach
+                    WHERE id_sach = :id_sach
                     LIMIT 1
                 ";
 
@@ -281,46 +285,47 @@ if (
                            INSERT PHIẾU MƯỢN
 
                            LƯU Ý: tên cột phải khớp đúng bảng thật:
-                             - doc_gia_id      (không phải id_doc_gia)
+                             - id_doc_gia       (không phải doc_gia_id)
                              - ngay_tra_du_kien (không phải ngay_hen_tra)
-                             - id_sach, so_luong là 2 cột mới thêm
-                               (xem file fix_bang_phieu_muon.sql)
+                             - bảng phieu_muon thật không có cột ghi_chu
                         ------------------------------------- */
 
                         $sql = "
                             INSERT INTO phieu_muon
                             (
-                                doc_gia_id,
+                                id_doc_gia,
                                 id_sach,
                                 so_luong,
                                 ngay_muon,
                                 ngay_tra_du_kien,
-                                trang_thai,
-                                ghi_chu
+                                trang_thai
                             )
                             VALUES
                             (
-                                :doc_gia_id,
+                                :id_doc_gia,
                                 :id_sach,
                                 :so_luong,
                                 :ngay_muon,
                                 :ngay_tra_du_kien,
-                                :trang_thai,
-                                :ghi_chu
+                                :trang_thai
                             )
                         ";
 
                         $stmt = $conn->prepare($sql);
 
                         $stmt->execute([
-                            ':doc_gia_id' => $docGia['id'],
+                            ':id_doc_gia' => $docGia['id'],
                             ':id_sach' => $id_sach,
                             ':so_luong' => $so_luong,
                             ':ngay_muon' => $ngay_muon,
                             ':ngay_tra_du_kien' => $ngay_hen_tra,
-                            ':trang_thai' => $trang_thai,
-                            ':ghi_chu' => ''
+                            ':trang_thai' => $trang_thai
                         ]);
+
+
+                        /* Lấy id phiếu vừa tạo NGAY sau khi INSERT,
+                           trước khi chạy thêm câu lệnh nào khác */
+                        $phieuVuaTaoId = (int)$conn->lastInsertId();
 
 
                         /* -------------------------------------
@@ -330,7 +335,7 @@ if (
                         $sql = "
                             UPDATE sach
                             SET so_luong = so_luong - :so_luong
-                            WHERE id = :id_sach
+                            WHERE id_sach = :id_sach
                               AND so_luong >= :so_luong
                         ";
 
@@ -387,6 +392,10 @@ if (
                             $conn->rollBack();
                         }
 
+                        /* Phiếu đã rollback -> không còn tồn tại,
+                           không hiện nút xem phiếu cho id này nữa */
+                        $phieuVuaTaoId = null;
+
                         /* Ghi log chi tiết lỗi phía server, không hiện cho người dùng */
                         error_log('[phieu_muon] Tạo phiếu mượn thất bại: ' . $e->getMessage());
 
@@ -415,7 +424,7 @@ try {
 
     $sql = "
         SELECT
-            id,
+            id_sach AS id,
             ten_sach,
             so_luong
         FROM sach
@@ -864,6 +873,8 @@ try {
 
             justify-content: flex-end;
 
+            gap: 10px;
+
             margin-top: 10px;
         }
 
@@ -887,6 +898,48 @@ try {
 
         .borrow-button:hover {
             background: #d90000;
+        }
+
+        .view-receipt-button {
+            width: 170px;
+
+            height: 42px;
+
+            background: #ffffff;
+
+            color: #333;
+
+            border: 2px solid #333;
+
+            font-size: 12px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            text-decoration: none;
+        }
+
+        .view-receipt-button:hover {
+            background: #333;
+
+            color: #fff;
+        }
+
+        .view-receipt-button.disabled {
+            border-color: #bbb;
+
+            color: #bbb;
+
+            cursor: not-allowed;
+
+            pointer-events: none;
         }
 
 
@@ -1367,6 +1420,24 @@ try {
                 >
                     TẠO PHIẾU MƯỢN
                 </button>
+
+                <?php if ($phieuVuaTaoId !== null && $phieuVuaTaoId > 0): ?>
+
+                    <a
+                        href="xuat_phieu.php?id=<?= (int)$phieuVuaTaoId ?>"
+                        target="_blank"
+                        class="view-receipt-button"
+                    >
+                        XEM PHIẾU ĐÃ XUẤT
+                    </a>
+
+                <?php else: ?>
+
+                    <span class="view-receipt-button disabled">
+                        XEM PHIẾU ĐÃ XUẤT
+                    </span>
+
+                <?php endif; ?>
 
             </div>
 

@@ -1,4 +1,10 @@
 <?php
+
+session_start();
+
+require_once "db.php";
+
+
 // ==========================
 // KHỞI TẠO DỮ LIỆU
 // ==========================
@@ -45,6 +51,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         $errors["username"] =
             "Tên đăng nhập chỉ được chứa chữ cái, số và dấu gạch dưới.";
+
+    } else {
+
+        // Kiểm tra trùng tên đăng nhập trong database
+        $stmt = $pdo->prepare(
+            "SELECT id_doc_gia FROM doc_gia WHERE ten_tai_khoan = :username LIMIT 1"
+        );
+        $stmt->execute(["username" => $username]);
+
+        if ($stmt->fetch()) {
+            $errors["username"] = "Tên đăng nhập này đã được sử dụng.";
+        }
     }
 
 
@@ -59,6 +77,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 
         $errors["email"] = "Email không đúng định dạng.";
+
+    } else {
+
+        // Kiểm tra trùng email trong database
+        $stmt = $pdo->prepare(
+            "SELECT id_doc_gia FROM doc_gia WHERE email = :email LIMIT 1"
+        );
+        $stmt->execute(["email" => $email]);
+
+        if ($stmt->fetch()) {
+            $errors["email"] = "Email này đã được đăng ký.";
+        }
     }
 
 
@@ -99,10 +129,28 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
     // ==========================
-    // NẾU KHÔNG CÓ LỖI
+    // NẾU KHÔNG CÓ LỖI -> LƯU VÀO DATABASE
     // ==========================
 
     if (empty($errors)) {
+
+        // Ghi chú: form này chỉ thu thập username/email/password.
+        // Họ tên, ngày sinh, địa chỉ sẽ được bổ sung sau ở bước
+        // "hoàn thiện hồ sơ" (theo form đầy đủ đã thiết kế trước đó),
+        // nên ho_ten/ngay_sinh/... để NULL ở bước đăng ký nhanh này.
+
+        $mat_khau_hash = password_hash($password, PASSWORD_DEFAULT);
+
+        $stmt = $pdo->prepare(
+            "INSERT INTO doc_gia (ten_tai_khoan, email, mat_khau)
+             VALUES (:username, :email, :mat_khau)"
+        );
+
+        $stmt->execute([
+            "username" => $username,
+            "email"    => $email,
+            "mat_khau" => $mat_khau_hash,
+        ]);
 
         $success = "Đăng ký thành công!";
 
@@ -215,32 +263,45 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         <!-- NÚT ĐĂNG NHẬP -->
 
-        <a href="login.php" class="btn-login">
+        <?php if (isset($_SESSION["ten_tai_khoan"])): ?>
 
-            <svg
-                viewBox="0 0 24 24"
-                width="15"
-                height="15"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-            >
+            <span class="btn-login">
+                Xin chào, <?= htmlspecialchars($_SESSION["ten_tai_khoan"]) ?>
+                <?= ($_SESSION["vai_tro"] === "admin") ? " (admin)" : "" ?>
+                &nbsp;|&nbsp;
+                <a href="logout.php">Đăng xuất</a>
+            </span>
 
-                <circle
-                    cx="12"
-                    cy="8"
-                    r="3.4"
-                />
+        <?php else: ?>
 
-                <path
-                    d="M4.5 20c1.4-3.6 4.4-5.6 7.5-5.6s6.1 2 7.5 5.6"
-                />
+            <a href="login.php" class="btn-login">
 
-            </svg>
+                <svg
+                    viewBox="0 0 24 24"
+                    width="15"
+                    height="15"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
 
-            Đăng nhập
+                    <circle
+                        cx="12"
+                        cy="8"
+                        r="3.4"
+                    />
 
-        </a>
+                    <path
+                        d="M4.5 20c1.4-3.6 4.4-5.6 7.5-5.6s6.1 2 7.5 5.6"
+                    />
+
+                </svg>
+
+                Đăng nhập
+
+            </a>
+
+        <?php endif; ?>
 
     </div>
 
@@ -268,6 +329,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             <div class="success-message">
                 <?= htmlspecialchars($success) ?>
+
+                <br>
+
+                <a href="login.php">Đăng nhập ngay</a>
             </div>
 
         <?php endif; ?>

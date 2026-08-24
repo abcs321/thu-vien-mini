@@ -1,3 +1,8 @@
+/* =====================================================================
+   style.css — Toàn bộ giao diện, tách từ file index.php (bản Harry Potter)
+   + phần CSS cho trang "Danh sách sách" (danh-sach-sach.php) nối thêm ở cuối.
+   ===================================================================== */
+
 :root {
     --font-display: 'Roboto', Arial, Helvetica, sans-serif;
     --font-body: 'Roboto', Arial, sans-serif;
