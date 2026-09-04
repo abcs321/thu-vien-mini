@@ -1,22 +1,31 @@
 <?php
-// 1. KẾT NỐI CƠ SỞ DỮ LIỆU MYSQL
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Kết nối CSDL
 $host = "localhost";
 $user = "root";
 $pass = "";
-$dbname = "thuvien"; // 
+$dbname = "thuvien";
 
-$conn = @new mysqli($host, $user, $pass, $dbname);
-
+$conn = new mysqli($host, $user, $pass, $dbname);
 if ($conn->connect_error) {
-    die("<h2 style='color:red; text-align:center; margin-top:50px;'>Lỗi kết nối CSDL: " . $conn->connect_error . "<br>Vui lòng kiểm tra lại XAMPP/phpMyAdmin!</h2>");
+    die("Lỗi kết nối CSDL: " . $conn->connect_error);
 }
-
 $conn->set_charset("utf8mb4");
 
-// 2. TRUY VẤN DỮ LIỆU SÁCH
+// Kiểm tra trạng thái đăng nhập và vai trò admin
+$is_logged_in = isset($_SESSION['id_doc_gia']);
+$user_name = $is_logged_in ? $_SESSION['ho_ten'] : '';
+$is_admin = isset($_SESSION['vai_tro']) && $_SESSION['vai_tro'] === 'admin';
+
+// Truy vấn lấy danh sách sách
 $sql = "SELECT * FROM sach";
 $result = $conn->query($sql);
 ?>
+<!DOCTYPE html>
+<html lang="vi">
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -357,7 +366,24 @@ $result = $conn->query($sql);
       <div class="logo-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
       <span>THƯ VIỆN</span>
     </div>
-
+<nav class="navbar">
+    <div class="nav-right">
+        <?php if ($is_logged_in): ?>
+            <!-- Đã đăng nhập -->
+            <span class="user-welcome">Xin chào, <strong><?php echo htmlspecialchars($user_name); ?></strong>!</span>
+            
+            <?php if ($is_admin): ?>
+                <a href="thanhvien.php" class="btn btn-admin">Quản lý Thành viên</a>
+            <?php endif; ?>
+            
+            <a href="logout.php" class="btn btn-logout">Đăng xuất</a>
+        <?php else: ?>
+            <!-- Chưa đăng nhập -->
+            <a href="login.php?redirect=khampha.php" class="btn btn-login">Đăng nhập</a>
+            <a href="register.php" class="btn btn-register">Đăng ký</a>
+        <?php endif; ?>
+    </div>
+</nav>
     <nav>
       <ul>
         <li><a href="#">TRANG CHỦ</a></li>
@@ -524,6 +550,9 @@ $result = $conn->query($sql);
       alert('Bạn vừa bấm xem thông tin chi tiết cuốn sách: ' + bookName);
     }
   </script>
-
+</body>
+</html>
+</body>
+</html>
 </body>
 </html>
