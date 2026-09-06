@@ -1,558 +1,1552 @@
 <?php
+
+// =========================================================
+// 1. KHỞI ĐỘNG SESSION
+// =========================================================
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Kết nối CSDL
+
+// =========================================================
+// 2. GỌI INCLUDES.PHP
+//    Dùng chung HEADER + FOOTER với INDEX.PHP
+// =========================================================
+
+require __DIR__ . '/includes.php';
+
+
+// =========================================================
+// 3. KẾT NỐI CƠ SỞ DỮ LIỆU
+// =========================================================
+
 $host = "localhost";
 $user = "root";
-$pass = "";
-$dbname = "thuvien";
+$pass = "@Quytrinh1503";
+$dbname = "thu_vien_mini";
 
-$conn = new mysqli($host, $user, $pass, $dbname);
+// Nếu XAMPP của bạn dùng MySQL port 3307
+// thì đổi 3306 thành 3307.
+$port = 3306;
+
+
+$conn = new mysqli(
+    $host,
+    $user,
+    $pass,
+    $dbname,
+    $port
+);
+
+
+// Kiểm tra kết nối
+
 if ($conn->connect_error) {
     die("Lỗi kết nối CSDL: " . $conn->connect_error);
 }
+
+
+// Sử dụng UTF-8
+
 $conn->set_charset("utf8mb4");
 
-// Kiểm tra trạng thái đăng nhập và vai trò admin
-$is_logged_in = isset($_SESSION['id_doc_gia']);
-$user_name = $is_logged_in ? $_SESSION['ho_ten'] : '';
-$is_admin = isset($_SESSION['vai_tro']) && $_SESSION['vai_tro'] === 'admin';
 
-// Truy vấn lấy danh sách sách
-$sql = "SELECT * FROM sach";
+// =========================================================
+// 4. LẤY DANH SÁCH SÁCH
+// =========================================================
+//
+// Bảng sach thực tế của bạn:
+//
+// id
+// ten_sach
+// bia_sach
+// tac_gia
+// the_loai
+// tinh_trang
+// sach_vat_ly
+// con_sach
+// luot_muon
+// phim_chuyen_the
+// so_luong
+// id_nxb
+//
+// Không cần JOIN vì tác giả và thể loại
+// đang nằm trực tiếp trong bảng sach.
+//
+
+$sql = "
+    SELECT
+        id,
+        ten_sach,
+        bia_sach,
+        tac_gia,
+        the_loai,
+        tinh_trang,
+        sach_vat_ly,
+        con_sach,
+        luot_muon,
+        phim_chuyen_the,
+        so_luong,
+        id_nxb
+    FROM sach
+    ORDER BY luot_muon DESC, ten_sach ASC
+";
+
+
 $result = $conn->query($sql);
+
+
+// Kiểm tra câu lệnh SQL
+
+if (!$result) {
+    die("Lỗi truy vấn CSDL: " . $conn->error);
+}
+
 ?>
+
+
 <!DOCTYPE html>
+
 <html lang="vi">
-<!DOCTYPE html>
-<html lang="vi">
+
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Khám phá - Thư Viện</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Segoe UI', Arial, sans-serif;
-    }
 
-    body {
-      background-color: #1a1b22;
-      color: #ffffff;
-      width: 100%;
-      overflow-x: hidden;
-    }
+    <meta charset="UTF-8">
 
-    /* HEADER FULL WIDTH TRÀN MÀN HÌNH */
-    header {
-      background-color: #161622;
-      border-top: 3px solid #e74c3c;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 15px 5%;
-      width: 100%;
-    }
 
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 20px;
-      font-weight: bold;
-      letter-spacing: 1px;
-    }
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    .logo-icon {
-      width: 32px;
-      height: 32px;
-      background-color: #e74c3c;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 14px;
-    }
 
-    nav ul {
-      display: flex;
-      list-style: none;
-      gap: 25px;
-      align-items: center;
-    }
+    <title>
+        Khám phá - Thư Viện
+    </title>
 
-    nav ul li a {
-      color: #d1d1d1;
-      text-decoration: none;
-      font-size: 13px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      transition: color 0.3s;
-    }
 
-    nav ul li a:hover,
-    nav ul li a.active {
-      color: #e74c3c;
-    }
+    <!-- =====================================================
+         CSS CHUNG
+         Dùng chung với index.php
+    ====================================================== -->
 
-    .btn-login {
-      background-color: #e74c3c;
-      color: white;
-      border: none;
-      padding: 8px 18px;
-      border-radius: 4px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: background-color 0.3s;
-    }
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
 
-    .btn-login:hover {
-      background-color: #c0392b;
-    }
 
-    .hero {
-      position: relative;
-      width: 100%;
-      height: 400px;
-      background: linear-gradient(rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.75)), 
-                  url('https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=1200&auto=format&fit=crop') center/cover no-repeat;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      padding: 0 20px;
-    }
+    <!-- =====================================================
+         FONT AWESOME
+    ====================================================== -->
 
-    .hero-title {
-      font-size: 48px;
-      font-weight: bold;
-      margin-bottom: 20px;
-    }
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    >
 
-    .hero-title .highlight {
-      color: #e74c3c;
-    }
 
-    .hero-description {
-      max-width: 850px;
-      font-size: 16px;
-      line-height: 1.6;
-      color: #f1f1f1;
-      font-weight: 400;
-    }
+    <!-- =====================================================
+         CSS RIÊNG CỦA TRANG KHÁM PHÁ
+    ====================================================== -->
 
-    .content-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 30px 20px;
-    }
+    <style>
 
-    .search-container {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 40px;
-    }
+        /* =====================================================
+           PHẦN HERO
+        ===================================================== */
 
-    .search-box {
-      background-color: #ffffff;
-      display: flex;
-      align-items: center;
-      padding: 8px 15px;
-      border-radius: 4px;
-      width: 280px;
-      justify-content: space-between;
-    }
+        .explore-hero {
 
-    .search-box input {
-      border: none;
-      outline: none;
-      font-size: 15px;
-      font-weight: 500;
-      color: #333;
-      width: 85%;
-    }
+            width: 100%;
 
-    .search-box i {
-      color: #e74c3c;
-      font-size: 14px;
-    }
+            min-height: 400px;
 
-    .featured-books-section {
-      width: 100%;
-    }
+            background:
+                linear-gradient(
+                    rgba(0, 0, 0, 0.65),
+                    rgba(0, 0, 0, 0.75)
+                ),
+                url(
+                    'https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=1600&auto=format&fit=crop'
+                );
 
-    .section-title {
-      font-size: 20px;
-      text-transform: uppercase;
-      font-weight: bold;
-      margin-bottom: 25px;
-      color: #ffffff;
-    }
+            background-size: cover;
 
-    .book-detail-container {
-      display: flex;
-      gap: 30px;
-      align-items: flex-start;
-      margin-bottom: 40px;
-    }
+            background-position: center;
 
-    .book-cover-wrapper {
-      position: relative;
-      flex: 0 0 300px;
-    }
+            display: flex;
 
-    .book-cover-image {
-      width: 100%;
-      height: 420px;
-      object-fit: cover;
-      display: block;
-      border-radius: 4px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    }
+            flex-direction: column;
 
-    .watermark {
-      position: absolute;
-      bottom: 12px;
-      left: 15px;
-      color: rgba(255, 255, 255, 0.85);
-      font-size: 20px;
-      font-weight: bold;
-      letter-spacing: 0.5px;
-      text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
-      pointer-events: none;
-    }
+            justify-content: center;
 
-    .book-info-block {
-      background-color: #24252f;
-      padding: 30px 35px;
-      border-radius: 12px;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      min-height: 420px;
-      justify-content: space-between;
-    }
+            align-items: center;
 
-    .book-main-title {
-      font-size: 18px;
-      font-weight: bold;
-      text-transform: uppercase;
-      text-align: center;
-      margin-bottom: 15px;
-      color: #ffffff;
-      letter-spacing: 1px;
-    }
+            text-align: center;
 
-    .info-row {
-      display: flex;
-      align-items: center;
-      font-size: 14px;
-    }
+            padding: 40px 20px;
 
-    .info-label {
-      width: 140px;
-      color: #a0a0a0;
-      font-weight: normal;
-    }
+        }
 
-    .info-value {
-      color: #ffffff;
-      font-weight: bold;
-    }
 
-    .tag {
-      padding: 4px 10px;
-      border-radius: 3px;
-      text-transform: uppercase;
-      font-size: 11px;
-      font-weight: bold;
-      display: inline-block;
-      margin-right: 5px;
-    }
+        .explore-hero h1 {
 
-    .tag-genre { background-color: #383a48; color: #ffffff; }
-    .tag-status-updating { background-color: #b58900; color: #ffffff; }
-    .tag-physical-yes { background-color: #0c4a91; color: #ffffff; }
-    .tag-physical-stock { background-color: #00695c; color: #ffffff; }
-    .tag-adaptation {
-      background-color: #795548;
-      color: #ffffff;
-      font-size: 12px;
-      width: 110px;
-      text-align: center;
-    }
+            font-size: 48px;
 
-    .btn-more-info {
-      background-color: #e74c3c;
-      color: #ffffff;
-      border: none;
-      padding: 9px 18px;
-      border-radius: 4px;
-      font-size: 12px;
-      text-transform: uppercase;
-      font-weight: bold;
-      cursor: pointer;
-      width: fit-content;
-      margin-top: 10px;
-      transition: background-color 0.3s;
-    }
+            font-weight: 700;
 
-    .btn-more-info:hover {
-      background-color: #c0392b;
-    }
+            margin-bottom: 20px;
 
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.7);
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-    }
+            color: #ffffff;
 
-    .modal-content {
-      background: #24252f;
-      padding: 30px;
-      border-radius: 8px;
-      width: 350px;
-      text-align: center;
-      position: relative;
-    }
+        }
 
-    .modal-content h3 { margin-bottom: 20px; color: #fff; }
-    .modal-content input {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 15px;
-      border-radius: 4px;
-      border: 1px solid #444;
-      background-color: #1a1b22;
-      color: #fff;
-      outline: none;
-    }
 
-    .close-btn {
-      position: absolute;
-      top: 10px; right: 15px;
-      font-size: 22px;
-      cursor: pointer;
-      color: #aaa;
-    }
+        .explore-hero h1 span {
 
-    .close-btn:hover { color: #fff; }
-  </style>
+            color: #e74c3c;
+
+        }
+
+
+        .explore-hero p {
+
+            max-width: 850px;
+
+            font-size: 16px;
+
+            line-height: 1.7;
+
+            color: #eeeeee;
+
+        }
+
+
+        /* =====================================================
+           KHU VỰC NỘI DUNG
+        ===================================================== */
+
+        .explore-container {
+
+            max-width: 1200px;
+
+            margin: 0 auto;
+
+            padding: 40px 20px;
+
+        }
+
+
+        /* =====================================================
+           TÌM KIẾM
+        ===================================================== */
+
+        .explore-search-wrapper {
+
+            display: flex;
+
+            justify-content: flex-end;
+
+            margin-bottom: 35px;
+
+        }
+
+
+        .explore-search {
+
+            width: 300px;
+
+            height: 42px;
+
+            background: #ffffff;
+
+            border-radius: 5px;
+
+            display: flex;
+
+            align-items: center;
+
+            padding: 0 15px;
+
+        }
+
+
+        .explore-search input {
+
+            width: 100%;
+
+            border: none;
+
+            outline: none;
+
+            background: transparent;
+
+            color: #333333;
+
+            font-size: 14px;
+
+        }
+
+
+        .explore-search i {
+
+            color: #e74c3c;
+
+            font-size: 15px;
+
+        }
+
+
+        /* =====================================================
+           TIÊU ĐỀ
+        ===================================================== */
+
+        .explore-section-title {
+
+            color: #ffffff;
+
+            font-size: 22px;
+
+            font-weight: 700;
+
+            text-transform: uppercase;
+
+            margin-bottom: 30px;
+
+        }
+
+
+        /* =====================================================
+           MỘT CUỐN SÁCH
+        ===================================================== */
+
+        .explore-book {
+
+            display: flex;
+
+            gap: 30px;
+
+            margin-bottom: 40px;
+
+            align-items: stretch;
+
+        }
+
+
+        /* =====================================================
+           ẢNH BÌA
+        ===================================================== */
+
+        .explore-book-cover {
+
+            width: 300px;
+
+            min-width: 300px;
+
+            height: 420px;
+
+            position: relative;
+
+        }
+
+
+        .explore-book-cover img {
+
+            width: 100%;
+
+            height: 100%;
+
+            object-fit: cover;
+
+            border-radius: 6px;
+
+            display: block;
+
+            box-shadow:
+                0 5px 15px rgba(0, 0, 0, 0.45);
+
+        }
+
+
+        .explore-book-placeholder {
+
+            width: 100%;
+
+            height: 100%;
+
+            background: #30313b;
+
+            border-radius: 6px;
+
+            display: flex;
+
+            flex-direction: column;
+
+            justify-content: center;
+
+            align-items: center;
+
+            color: #aaaaaa;
+
+            gap: 12px;
+
+        }
+
+
+        .explore-book-placeholder i {
+
+            font-size: 55px;
+
+        }
+
+
+        .explore-watermark {
+
+            position: absolute;
+
+            left: 15px;
+
+            bottom: 12px;
+
+            color: rgba(255, 255, 255, 0.85);
+
+            font-size: 18px;
+
+            font-weight: bold;
+
+            text-shadow:
+                1px 1px 4px #000000;
+
+        }
+
+
+        /* =====================================================
+           THÔNG TIN SÁCH
+        ===================================================== */
+
+        .explore-book-info {
+
+            flex: 1;
+
+            min-height: 420px;
+
+            background: #24252f;
+
+            border-radius: 12px;
+
+            padding: 30px 35px;
+
+            display: flex;
+
+            flex-direction: column;
+
+            justify-content: space-between;
+
+        }
+
+
+        .explore-book-title {
+
+            text-align: center;
+
+            font-size: 20px;
+
+            font-weight: 700;
+
+            text-transform: uppercase;
+
+            line-height: 1.5;
+
+            margin-bottom: 25px;
+
+            color: #ffffff;
+
+        }
+
+
+        /* =====================================================
+           DÒNG THÔNG TIN
+        ===================================================== */
+
+        .explore-info-row {
+
+            display: flex;
+
+            align-items: center;
+
+            margin-bottom: 16px;
+
+            font-size: 14px;
+
+        }
+
+
+        .explore-info-label {
+
+            width: 165px;
+
+            min-width: 165px;
+
+            color: #999999;
+
+        }
+
+
+        .explore-info-value {
+
+            color: #ffffff;
+
+            font-weight: 600;
+
+        }
+
+
+        /* =====================================================
+           TAG
+        ===================================================== */
+
+        .explore-tag {
+
+            display: inline-block;
+
+            padding: 5px 10px;
+
+            border-radius: 4px;
+
+            font-size: 11px;
+
+            font-weight: bold;
+
+            text-transform: uppercase;
+
+        }
+
+
+        .explore-tag-genre {
+
+            background: #383a48;
+
+            color: #ffffff;
+
+        }
+
+
+        .explore-tag-status {
+
+            background: #b58900;
+
+            color: #ffffff;
+
+        }
+
+
+        .explore-tag-physical {
+
+            background: #00695c;
+
+            color: #ffffff;
+
+        }
+
+
+        .explore-tag-available {
+
+            background: #2e7d32;
+
+            color: #ffffff;
+
+        }
+
+
+        .explore-tag-unavailable {
+
+            background: #c62828;
+
+            color: #ffffff;
+
+        }
+
+
+        .explore-tag-movie {
+
+            background: #795548;
+
+            color: #ffffff;
+
+        }
+
+
+        /* =====================================================
+           NÚT
+        ===================================================== */
+
+        .explore-more-btn {
+
+            width: fit-content;
+
+            border: none;
+
+            background: #e74c3c;
+
+            color: #ffffff;
+
+            padding: 10px 20px;
+
+            border-radius: 4px;
+
+            cursor: pointer;
+
+            font-size: 12px;
+
+            font-weight: bold;
+
+            text-transform: uppercase;
+
+            transition: 0.3s;
+
+        }
+
+
+        .explore-more-btn:hover {
+
+            background: #c0392b;
+
+        }
+
+
+        /* =====================================================
+           KHÔNG CÓ SÁCH
+        ===================================================== */
+
+        .explore-no-books {
+
+            background: #24252f;
+
+            border-radius: 10px;
+
+            padding: 50px 20px;
+
+            text-align: center;
+
+            color: #aaaaaa;
+
+        }
+
+
+        .explore-no-books i {
+
+            font-size: 45px;
+
+            margin-bottom: 15px;
+
+        }
+
+
+        /* =====================================================
+           KHÔNG TÌM THẤY
+        ===================================================== */
+
+        .explore-no-result {
+
+            display: none;
+
+            background: #24252f;
+
+            border-radius: 10px;
+
+            padding: 40px 20px;
+
+            text-align: center;
+
+            color: #aaaaaa;
+
+        }
+
+
+        .explore-no-result i {
+
+            font-size: 35px;
+
+            margin-bottom: 15px;
+
+        }
+
+
+        /* =====================================================
+           RESPONSIVE
+        ===================================================== */
+
+        @media (max-width: 900px) {
+
+            .explore-book {
+
+                flex-direction: column;
+
+            }
+
+
+            .explore-book-cover {
+
+                margin: 0 auto;
+
+            }
+
+        }
+
+
+        @media (max-width: 600px) {
+
+            .explore-hero h1 {
+
+                font-size: 32px;
+
+            }
+
+
+            .explore-hero p {
+
+                font-size: 14px;
+
+            }
+
+
+            .explore-search-wrapper {
+
+                justify-content: center;
+
+            }
+
+
+            .explore-search {
+
+                width: 100%;
+
+            }
+
+
+            .explore-book-cover {
+
+                width: 100%;
+
+                min-width: 0;
+
+                max-width: 300px;
+
+                margin: 0 auto;
+
+            }
+
+
+            .explore-book-info {
+
+                padding: 25px 20px;
+
+            }
+
+
+            .explore-info-row {
+
+                flex-direction: column;
+
+                align-items: flex-start;
+
+                gap: 5px;
+
+            }
+
+
+            .explore-info-label {
+
+                width: auto;
+
+                min-width: 0;
+
+            }
+
+        }
+
+    </style>
+
 </head>
+
+
 <body>
 
-  <!-- 1. HEADER TRÀN VIỀN -->
-  <header>
-    <div class="logo">
-      <div class="logo-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
-      <span>THƯ VIỆN</span>
-    </div>
-<nav class="navbar">
-    <div class="nav-right">
-        <?php if ($is_logged_in): ?>
-            <!-- Đã đăng nhập -->
-            <span class="user-welcome">Xin chào, <strong><?php echo htmlspecialchars($user_name); ?></strong>!</span>
-            
-            <?php if ($is_admin): ?>
-                <a href="thanhvien.php" class="btn btn-admin">Quản lý Thành viên</a>
-            <?php endif; ?>
-            
-            <a href="logout.php" class="btn btn-logout">Đăng xuất</a>
-        <?php else: ?>
-            <!-- Chưa đăng nhập -->
-            <a href="login.php?redirect=khampha.php" class="btn btn-login">Đăng nhập</a>
-            <a href="register.php" class="btn btn-register">Đăng ký</a>
-        <?php endif; ?>
-    </div>
-</nav>
-    <nav>
-      <ul>
-        <li><a href="#">TRANG CHỦ</a></li>
-        <li><a href="#">VỀ CHÚNG TÔI</a></li>
-        <li><a href="#">DANH SÁCH SÁCH</a></li>
-        <li><a href="#">PHIẾU MƯỢN</a></li>
-        <li><a href="#" class="active">KHÁM PHÁ</a></li>
-        <li><a href="#">LIÊN LẠC</a></li>
-      </ul>
-    </nav>
 
-    <button class="btn-login" id="loginBtn">
-      <i class="fa-regular fa-user"></i> Đăng nhập
-    </button>
-  </header>
+<!-- =========================================================
+     HEADER
+     
+     QUAN TRỌNG:
+     Header này lấy trực tiếp từ includes.php
+     giống index.php
+========================================================= -->
 
-  <!-- 2. HERO BANNER TRÀN VIỀN -->
-  <section class="hero">
-    <h1 class="hero-title"><span class="highlight">Khám phá</span> / Trang chủ</h1>
-    <p class="hero-description">
-      Khám phá kho tri thức phong phú cùng Thư viện Online. Tìm kiếm và khám phá những cuốn sách yêu thích, các tài liệu học tập và nhiều nội dung bổ ích thuộc nhiều lĩnh vực khác nhau.
+<?php render_header($nav, 'explore'); ?>
+
+
+<!-- =========================================================
+     HERO
+========================================================= -->
+
+<section class="explore-hero">
+
+
+    <h1>
+
+        <span>
+            Khám phá
+        </span>
+
+        / Trang chủ
+
+    </h1>
+
+
+    <p>
+
+        Khám phá kho tri thức phong phú cùng Thư viện Online.
+        Tìm kiếm và khám phá những cuốn sách yêu thích,
+        các tài liệu học tập và nhiều nội dung bổ ích
+        thuộc nhiều lĩnh vực khác nhau.
+
     </p>
-  </section>
 
-  <!-- 3. KHU VỰC NỘI DUNG TÌM KIẾM & DANH SÁCH SÁCH -->
-  <div class="content-container">
-    
-    <!-- SEARCH BOX -->
-    <div class="search-container">
-      <div class="search-box">
-        <input type="text" id="searchInput" placeholder="Tìm kiếm sách...">
-        <i class="fa-solid fa-magnifying-glass"></i>
-      </div>
+
+</section>
+
+
+<!-- =========================================================
+     NỘI DUNG
+========================================================= -->
+
+<main class="explore-container">
+
+
+    <!-- =====================================================
+         TÌM KIẾM
+    ====================================================== -->
+
+    <div class="explore-search-wrapper">
+
+
+        <div class="explore-search">
+
+
+            <input
+                type="text"
+                id="searchInput"
+                placeholder="Tìm kiếm sách..."
+                autocomplete="off"
+            >
+
+
+            <i class="fa-solid fa-magnifying-glass"></i>
+
+
+        </div>
+
+
     </div>
 
-    <!-- HIỂN THỊ DANH SÁCH SÁCH TỪ MYSQL -->
-    <section class="featured-books-section">
-      <h2 class="section-title">Những đầu sách NỔI BẬT</h2>
 
-      <div id="bookList">
-        <?php if ($result && $result->num_rows > 0): ?>
-          <?php while($row = $result->fetch_assoc()): ?>
-            <div class="book-detail-container" data-title="<?php echo strtolower($row['ten_sach']); ?>">
-              <div class="book-cover-wrapper">
-                <img src="<?php echo $row['bia_sach']; ?>" alt="<?php echo $row['ten_sach']; ?>" class="book-cover-image">
-                <span class="watermark">ThuVienSach.vn</span>
-              </div>
+    <!-- =====================================================
+         TIÊU ĐỀ
+    ====================================================== -->
 
-              <div class="book-info-block">
-                <div>
-                  <h3 class="book-main-title"><?php echo $row['ten_sach']; ?></h3>
+    <h2 class="explore-section-title">
 
-                  <div class="info-row">
-                    <span class="info-label">Thể loại:</span>
-                    <div class="info-value">
-                      <?php 
-                        $tags = explode(',', $row['the_loai']);
-                        foreach($tags as $tag):
-                      ?>
-                        <span class="tag tag-genre"><?php echo trim($tag); ?></span>
-                      <?php endforeach; ?>
+        Những đầu sách nổi bật
+
+    </h2>
+
+
+    <!-- =====================================================
+         DANH SÁCH SÁCH
+    ====================================================== -->
+
+    <div id="bookList">
+
+
+        <?php if ($result->num_rows > 0): ?>
+
+
+            <?php while ($row = $result->fetch_assoc()): ?>
+
+
+                <?php
+
+                // =================================================
+                // LẤY DỮ LIỆU
+                // =================================================
+
+                $id = (int)($row['id'] ?? 0);
+
+
+                $ten_sach =
+                    $row['ten_sach']
+                    ?? 'Chưa có tên sách';
+
+
+                $bia_sach =
+                    $row['bia_sach']
+                    ?? '';
+
+
+                $tac_gia =
+                    $row['tac_gia']
+                    ?? 'Chưa có tác giả';
+
+
+                $the_loai =
+                    $row['the_loai']
+                    ?? 'Chưa có thể loại';
+
+
+                $tinh_trang =
+                    $row['tinh_trang']
+                    ?? 'Chưa xác định';
+
+
+                $sach_vat_ly =
+                    $row['sach_vat_ly']
+                    ?? 'Chưa xác định';
+
+
+                $con_sach =
+                    $row['con_sach']
+                    ?? 'Chưa xác định';
+
+
+                $luot_muon =
+                    (int)($row['luot_muon'] ?? 0);
+
+
+                $phim_chuyen_the =
+                    $row['phim_chuyen_the']
+                    ?? 'Chưa xác định';
+
+
+                $so_luong =
+                    (int)($row['so_luong'] ?? 0);
+
+
+                // Nội dung dùng cho tìm kiếm
+
+                $search_text =
+                    $ten_sach
+                    . ' '
+                    . $tac_gia
+                    . ' '
+                    . $the_loai;
+
+
+                ?>
+
+
+                <!-- =================================================
+                     MỘT CUỐN SÁCH
+                ================================================== -->
+
+                <article
+                    class="explore-book"
+                    data-search="<?php
+
+                        echo htmlspecialchars(
+                            $search_text,
+                            ENT_QUOTES,
+                            'UTF-8'
+                        );
+
+                    ?>"
+                >
+
+
+                    <!-- =============================================
+                         ẢNH BÌA
+                    ============================================== -->
+
+                    <div class="explore-book-cover">
+
+
+                        <?php if (!empty($bia_sach)): ?>
+
+
+                            <img
+                                src="<?php
+
+                                    echo htmlspecialchars(
+                                        $bia_sach,
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    );
+
+                                ?>"
+                                alt="<?php
+
+                                    echo htmlspecialchars(
+                                        $ten_sach,
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    );
+
+                                ?>"
+                            >
+
+
+                        <?php else: ?>
+
+
+                            <div class="explore-book-placeholder">
+
+
+                                <i class="fa-solid fa-book"></i>
+
+
+                                <span>
+                                    Chưa có ảnh bìa
+                                </span>
+
+
+                            </div>
+
+
+                        <?php endif; ?>
+
+
+                        <span class="explore-watermark">
+
+                            THƯ VIỆN
+
+                        </span>
+
+
                     </div>
-                  </div>
 
-                  <div class="info-row" style="margin-top: 12px;">
-                    <span class="info-label">Tác giả:</span>
-                    <span class="info-value"><?php echo $row['tac_gia']; ?></span>
-                  </div>
 
-                  <div class="info-row" style="margin-top: 12px;">
-                    <span class="info-label">Tình trạng:</span>
-                    <span class="info-value">
-                      <span class="tag tag-status-updating"><?php echo $row['tinh_trang']; ?></span>
-                    </span>
-                  </div>
+                    <!-- =============================================
+                         THÔNG TIN SÁCH
+                    ============================================== -->
 
-                  <div class="info-row" style="margin-top: 12px;">
-                    <span class="info-label">Sách vật lý:</span>
-                    <span class="info-value">
-                      <span class="tag tag-physical-yes"><?php echo $row['sach_vat_ly']; ?></span>
-                      <span class="tag tag-physical-stock"><?php echo $row['con_sach']; ?></span>
-                    </span>
-                  </div>
+                    <div class="explore-book-info">
 
-                  <div class="info-row" style="margin-top: 12px;">
-                    <span class="info-label">Số lượt mượn/đọc:</span>
-                    <span class="info-value"><?php echo number_format($row['luot_muon'], 0, ',', ''); ?></span>
-                  </div>
 
-                  <div class="info-row" style="margin-top: 12px;">
-                    <span class="info-label">Phim chuyển thể:</span>
-                    <span class="info-value">
-                      <span class="tag tag-adaptation"><?php echo $row['phim_chuyen_the']; ?></span>
-                    </span>
-                  </div>
-                </div>
+                        <div>
 
-                <button class="btn-more-info" onclick="showBookDetail('<?php echo $row['ten_sach']; ?>')">Tìm hiểu thêm</button>
-              </div>
-            </div>
-          <?php endwhile; ?>
+
+                            <!-- TÊN SÁCH -->
+
+                            <h3 class="explore-book-title">
+
+                                <?php
+
+                                echo htmlspecialchars(
+                                    $ten_sach,
+                                    ENT_QUOTES,
+                                    'UTF-8'
+                                );
+
+                                ?>
+
+                            </h3>
+
+
+                            <!-- THỂ LOẠI -->
+
+                            <div class="explore-info-row">
+
+
+                                <span class="explore-info-label">
+
+                                    Thể loại:
+
+                                </span>
+
+
+                                <span class="explore-info-value">
+
+
+                                    <span
+                                        class="explore-tag explore-tag-genre"
+                                    >
+
+                                        <?php
+
+                                        echo htmlspecialchars(
+                                            $the_loai,
+                                            ENT_QUOTES,
+                                            'UTF-8'
+                                        );
+
+                                        ?>
+
+                                    </span>
+
+
+                                </span>
+
+
+                            </div>
+
+
+                            <!-- TÁC GIẢ -->
+
+                            <div class="explore-info-row">
+
+
+                                <span class="explore-info-label">
+
+                                    Tác giả:
+
+                                </span>
+
+
+                                <span class="explore-info-value">
+
+                                    <?php
+
+                                    echo htmlspecialchars(
+                                        $tac_gia,
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    );
+
+                                    ?>
+
+                                </span>
+
+
+                            </div>
+
+
+                            <!-- TÌNH TRẠNG -->
+
+                            <div class="explore-info-row">
+
+
+                                <span class="explore-info-label">
+
+                                    Tình trạng:
+
+                                </span>
+
+
+                                <span class="explore-info-value">
+
+
+                                    <span
+                                        class="explore-tag explore-tag-status"
+                                    >
+
+                                        <?php
+
+                                        echo htmlspecialchars(
+                                            $tinh_trang,
+                                            ENT_QUOTES,
+                                            'UTF-8'
+                                        );
+
+                                        ?>
+
+                                    </span>
+
+
+                                </span>
+
+
+                            </div>
+
+
+                            <!-- SÁCH VẬT LÝ -->
+
+                            <div class="explore-info-row">
+
+
+                                <span class="explore-info-label">
+
+                                    Sách vật lý:
+
+                                </span>
+
+
+                                <span class="explore-info-value">
+
+
+                                    <span
+                                        class="explore-tag explore-tag-physical"
+                                    >
+
+                                        <?php
+
+                                        echo htmlspecialchars(
+                                            $sach_vat_ly,
+                                            ENT_QUOTES,
+                                            'UTF-8'
+                                        );
+
+                                        ?>
+
+                                    </span>
+
+
+                                </span>
+
+
+                            </div>
+
+
+                            <!-- CÒN SÁCH -->
+
+                            <div class="explore-info-row">
+
+
+                                <span class="explore-info-label">
+
+                                    Còn sách:
+
+                                </span>
+
+
+                                <span class="explore-info-value">
+
+                                    <?php
+
+                                    echo htmlspecialchars(
+                                        $con_sach,
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    );
+
+                                    ?>
+
+                                </span>
+
+
+                            </div>
+
+
+                            <!-- SỐ LƯỢNG -->
+
+                            <div class="explore-info-row">
+
+
+                                <span class="explore-info-label">
+
+                                    Số lượng:
+
+                                </span>
+
+
+                                <span class="explore-info-value">
+
+                                    <?php
+
+                                    echo $so_luong;
+
+                                    ?>
+
+                                </span>
+
+
+                            </div>
+
+
+                            <!-- LƯỢT MƯỢN -->
+
+                            <div class="explore-info-row">
+
+
+                                <span class="explore-info-label">
+
+                                    Lượt mượn/đọc:
+
+                                </span>
+
+
+                                <span class="explore-info-value">
+
+                                    <?php
+
+                                    echo number_format(
+                                        $luot_muon,
+                                        0,
+                                        ',',
+                                        '.'
+                                    );
+
+                                    ?>
+
+                                </span>
+
+
+                            </div>
+
+
+                            <!-- PHIM CHUYỂN THỂ -->
+
+                            <div class="explore-info-row">
+
+
+                                <span class="explore-info-label">
+
+                                    Phim chuyển thể:
+
+                                </span>
+
+
+                                <span class="explore-info-value">
+
+
+                                    <span
+                                        class="explore-tag explore-tag-movie"
+                                    >
+
+                                        <?php
+
+                                        echo htmlspecialchars(
+                                            $phim_chuyen_the,
+                                            ENT_QUOTES,
+                                            'UTF-8'
+                                        );
+
+                                        ?>
+
+                                    </span>
+
+
+                                </span>
+
+
+                            </div>
+
+
+                        </div>
+
+
+                        <!-- =========================================
+                             NÚT TÌM HIỂU THÊM
+                        ========================================== -->
+
+                        <button
+                            type="button"
+                            class="explore-more-btn"
+                            onclick="showBookDetail(<?php
+
+                                echo htmlspecialchars(
+                                    json_encode(
+                                        $ten_sach,
+                                        JSON_UNESCAPED_UNICODE
+                                    ),
+                                    ENT_QUOTES,
+                                    'UTF-8'
+                                );
+
+                            ?>)"
+                        >
+
+                            Tìm hiểu thêm
+
+                        </button>
+
+
+                    </div>
+
+
+                </article>
+
+
+            <?php endwhile; ?>
+
+
         <?php else: ?>
-          <p style="padding: 20px; color: #aaa;">Chưa có dữ liệu sách trong cơ sở dữ liệu.</p>
+
+
+            <!-- =============================================
+                 KHÔNG CÓ SÁCH
+            ============================================== -->
+
+            <div class="explore-no-books">
+
+
+                <i class="fa-solid fa-book-open"></i>
+
+
+                <p>
+
+                    Chưa có sách trong cơ sở dữ liệu.
+
+                </p>
+
+
+            </div>
+
+
         <?php endif; ?>
-      </div>
-    </section>
 
-  </div>
 
-  <!-- MODAL ĐĂNG NHẬP -->
-  <div class="modal" id="loginModal">
-    <div class="modal-content">
-      <span class="close-btn" onclick="closeLoginModal()">&times;</span>
-      <h3>ĐĂNG NHẬP</h3>
-      <form onsubmit="handleLogin(event)">
-        <input type="text" placeholder="Tên đăng nhập / Email" required>
-        <input type="password" placeholder="Mật khẩu" required>
-        <button type="submit" class="btn-more-info" style="width: 100%;">Đăng nhập</button>
-      </form>
     </div>
-  </div>
 
-  <!-- JAVASCRIPT XỬ LÝ CHỨC NĂNG -->
-  <script>
-    // 1. Chức năng tìm kiếm sách Realtime
-    document.getElementById('searchInput').addEventListener('keyup', function() {
-      let keyword = this.value.toLowerCase().trim();
-      let books = document.querySelectorAll('.book-detail-container');
 
-      books.forEach(book => {
-        let title = book.getAttribute('data-title');
-        if (title.includes(keyword)) {
-          book.style.display = 'flex';
-        } else {
-          book.style.display = 'none';
+    <!-- =====================================================
+         KHÔNG TÌM THẤY KẾT QUẢ
+    ====================================================== -->
+
+    <div
+        id="noSearchResult"
+        class="explore-no-result"
+    >
+
+
+        <i class="fa-solid fa-magnifying-glass"></i>
+
+
+        <p>
+
+            Không tìm thấy cuốn sách nào phù hợp.
+
+        </p>
+
+
+    </div>
+
+
+</main>
+
+
+<!-- =========================================================
+     FOOTER
+     
+     Footer này lấy trực tiếp từ includes.php
+     giống index.php
+========================================================= -->
+
+<?php render_footer($footer); ?>
+
+
+<!-- =========================================================
+     JAVASCRIPT
+========================================================= -->
+
+<script>
+
+
+    // =========================================================
+    // 1. TÌM KIẾM SÁCH
+    // =========================================================
+
+    const searchInput =
+        document.getElementById('searchInput');
+
+
+    const books =
+        document.querySelectorAll('.explore-book');
+
+
+    const noSearchResult =
+        document.getElementById('noSearchResult');
+
+
+    searchInput.addEventListener(
+        'input',
+        function () {
+
+
+            // Lấy từ khóa
+
+            const keyword =
+                this.value
+                    .toLowerCase()
+                    .trim();
+
+
+            let found = 0;
+
+
+            // Duyệt từng sách
+
+            books.forEach(
+                function (book) {
+
+
+                    const searchText =
+                        (
+                            book.getAttribute(
+                                'data-search'
+                            ) || ''
+                        ).toLowerCase();
+
+
+                    if (
+                        searchText.includes(keyword)
+                    ) {
+
+                        book.style.display =
+                            'flex';
+
+                        found++;
+
+                    } else {
+
+                        book.style.display =
+                            'none';
+
+                    }
+
+                }
+            );
+
+
+            // Hiển thị thông báo nếu không tìm thấy
+
+            if (
+                keyword !== ''
+                && found === 0
+            ) {
+
+                noSearchResult.style.display =
+                    'block';
+
+            } else {
+
+                noSearchResult.style.display =
+                    'none';
+
+            }
+
         }
-      });
-    });
+    );
 
-    // 2. Chức năng bật/tắt Modal Đăng nhập
-    const loginModal = document.getElementById('loginModal');
-    document.getElementById('loginBtn').addEventListener('click', () => {
-      loginModal.style.display = 'flex';
-    });
 
-    function closeLoginModal() {
-      loginModal.style.display = 'none';
-    }
+    // =========================================================
+    // 2. TÌM HIỂU THÊM
+    // =========================================================
 
-    window.onclick = function(event) {
-      if (event.target == loginModal) {
-        closeLoginModal();
-      }
-    }
-
-    function handleLogin(e) {
-      e.preventDefault();
-      alert('Đăng nhập thành công!');
-      closeLoginModal();
-    }
-
-    // 3. Chức năng nút "Tìm hiểu thêm"
     function showBookDetail(bookName) {
-      alert('Bạn vừa bấm xem thông tin chi tiết cuốn sách: ' + bookName);
+
+        alert(
+            'Bạn đang xem thông tin của sách: '
+            + bookName
+        );
+
     }
-  </script>
+
+
+</script>
+
+
 </body>
+
 </html>
-</body>
-</html>
-</body>
-</html>
+
+
+<?php
+
+// =========================================================
+// 5. ĐÓNG KẾT NỐI DATABASE
+// =========================================================
+
+$conn->close();
+
+?>

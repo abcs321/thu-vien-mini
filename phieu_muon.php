@@ -1,10 +1,11 @@
 <?php
 
 /* =========================================================
-   1. KẾT NỐI DATABASE
+   1. KẾT NỐI DATABASE + FILE DÙNG CHUNG
 ========================================================= */
 
-require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/database/database.php';
+require_once __DIR__ . '/includes.php';
 
 
 /* =========================================================
@@ -13,60 +14,18 @@ require_once __DIR__ . '/config/database.php';
 
 $pageTitle = 'Phiếu mượn';
 $activeKey = 'borrow';
-/*
- * QUAN TRỌNG: cấu trúc $nav dưới đây phải khớp CHÍNH XÁC với những gì
- * header.php thật (hàm render_header) mong đợi:
- *   - 'logo'  : chuỗi
- *   - 'links' : mảng các phần tử ['label' => .., 'href' => .., 'key' => ..]
- *   - 'login' : chuỗi (chỉ là nhãn hiển thị, không phải mảng/url)
- * Sai một khóa (vd 'items' thay vì 'links', 'url' thay vì 'href')
- * sẽ khiến header.php báo lỗi "Undefined array key" / TypeError trong esc().
- */
-$nav = [
-    'logo' => 'THƯ VIỆN',
 
-    'links' => [
-        [
-            'label' => 'TRANG CHỦ',
-            'href' => 'index.php',
-            'key' => 'home'
-        ],
-        [
-            'label' => 'VỀ CHÚNG TÔI',
-            'href' => 've-chung-toi.php',
-            'key' => 'about'
-        ],
-        [
-            'label' => 'DANH SÁCH SÁCH',
-            'href' => 'danh-sach-sach.php',
-            'key' => 'books'
-        ],
-        [
-            'label' => 'PHIẾU MƯỢN',
-            'href' => 'phieu_muon.php',
-            'key' => 'borrow'
-        ],
-        [
-            'label' => 'KHÁM PHÁ',
-            'href' => 'discover.php',
-            'key' => 'explore'
-        ],
-        [
-            'label' => 'LIÊN LẠC',
-            'href' => 'contact.php',
-            'key' => 'contact'
-        ]
-    ],
 
-    'login' => 'Đăng nhập'
-];
 $message = '';
 $messageType = '';
 
-/* Giá trị giữ lại trên form */
+
+/* =========================================================
+   3. GIÁ TRỊ GIỮ LẠI TRÊN FORM
+========================================================= */
+
 $tai_khoan = '';
 $mat_khau = '';
-
 $ho_ten = '';
 
 $id_sach = '';
@@ -79,7 +38,7 @@ $trang_thai = 'Đang mượn';
 
 
 /* =========================================================
-   3. XỬ LÝ KHI BẤM "TẠO PHIẾU MƯỢN"
+   4. XỬ LÝ KHI BẤM "TẠO PHIẾU MƯỢN"
 ========================================================= */
 
 if (
@@ -87,9 +46,9 @@ if (
     && isset($_POST['submit_borrow'])
 ) {
 
-    /* -----------------------------------------
-       Lấy dữ liệu từ form
-    ----------------------------------------- */
+    /* =====================================================
+       4.1. LẤY DỮ LIỆU TỪ FORM
+    ===================================================== */
 
     $tai_khoan = trim($_POST['tai_khoan'] ?? '');
     $mat_khau = trim($_POST['mat_khau'] ?? '');
@@ -106,7 +65,7 @@ if (
 
 
     /* =====================================================
-       3.1. KIỂM TRA DỮ LIỆU BẮT BUỘC
+       4.2. KIỂM TRA DỮ LIỆU BẮT BUỘC
     ===================================================== */
 
     if ($tai_khoan === '') {
@@ -149,14 +108,7 @@ if (
         try {
 
             /* =================================================
-               3.2. KIỂM TRA TÀI KHOẢN ĐỘC GIẢ
-
-               LƯU Ý: không so sánh mật khẩu ngay trong SQL vì
-               bảng doc_gia dùng mat_khau VARCHAR(255) - có thể
-               đang lưu dạng ĐÃ BĂM (password_hash/bcrypt) hoặc
-               PLAIN TEXT tuỳ dữ liệu thực tế. Lấy ra theo tài
-               khoản trước, rồi xác thực bằng PHP để tự nhận diện
-               đúng cả 2 trường hợp mà không cần sửa lại về sau.
+               4.3. KIỂM TRA TÀI KHOẢN ĐỘC GIẢ
             ================================================= */
 
             $sql = "
@@ -179,33 +131,42 @@ if (
             $docGia = $stmt->fetch();
 
 
-            /* ---------------------------------------------
-               Xác thực mật khẩu (tự nhận diện hash / plain text)
-            --------------------------------------------- */
+            /* =================================================
+               4.3.1. XÁC THỰC MẬT KHẨU
+            ================================================= */
 
             $matKhauDung = false;
 
             if ($docGia) {
 
                 $matKhauLuu = $docGia['mat_khau'];
+
                 $thongTinHash = password_get_info($matKhauLuu);
 
                 if ($thongTinHash['algo'] !== null) {
 
-                    /* mat_khau trong DB là chuỗi đã băm */
-                    $matKhauDung = password_verify($mat_khau, $matKhauLuu);
+                    /* Mật khẩu trong DB đã được băm */
+
+                    $matKhauDung = password_verify(
+                        $mat_khau,
+                        $matKhauLuu
+                    );
 
                 } else {
 
-                    /* mat_khau trong DB đang là plain text */
-                    $matKhauDung = hash_equals($matKhauLuu, $mat_khau);
+                    /* Mật khẩu trong DB đang là plain text */
+
+                    $matKhauDung = hash_equals(
+                        $matKhauLuu,
+                        $mat_khau
+                    );
                 }
             }
 
 
-            /* ---------------------------------------------
-               Không tìm thấy tài khoản hoặc sai mật khẩu
-            --------------------------------------------- */
+            /* =================================================
+               4.3.2. TÀI KHOẢN HOẶC MẬT KHẨU KHÔNG ĐÚNG
+            ================================================= */
 
             if (!$docGia || !$matKhauDung) {
 
@@ -214,15 +175,16 @@ if (
 
             } else {
 
-                /* =============================================
-                   3.3. KIỂM TRA SÁCH
-                ============================================= */
+                /* =================================================
+                   4.4. KIỂM TRA SÁCH
+                ================================================= */
 
                 $sql = "
                     SELECT
                         id,
                         ten_sach,
-                        so_luong
+                        so_luong,
+                        luot_muon
                     FROM sach
                     WHERE id = :id_sach
                     LIMIT 1
@@ -237,9 +199,9 @@ if (
                 $sach = $stmt->fetch();
 
 
-                /* ---------------------------------------------
-                   Không tìm thấy sách
-                --------------------------------------------- */
+                /* =================================================
+                   4.4.1. KHÔNG TÌM THẤY SÁCH
+                ================================================= */
 
                 if (!$sach) {
 
@@ -248,9 +210,9 @@ if (
 
                 }
 
-                /* ---------------------------------------------
-                   Không đủ số lượng
-                --------------------------------------------- */
+                /* =================================================
+                   4.4.2. KHÔNG ĐỦ SỐ LƯỢNG
+                ================================================= */
 
                 elseif ((int)$sach['so_luong'] < $so_luong) {
 
@@ -265,27 +227,24 @@ if (
 
                 }
 
-                /* =============================================
-                   3.4. TẠO PHIẾU MƯỢN
-                ============================================= */
+                /* =================================================
+                   4.4.3. ĐỦ ĐIỀU KIỆN -> TẠO PHIẾU
+                ================================================= */
 
                 else {
 
                     try {
 
-                        /* Bắt đầu transaction */
+                        /* =================================================
+                           BẮT ĐẦU TRANSACTION
+                        ================================================= */
+
                         $conn->beginTransaction();
 
 
-                        /* -------------------------------------
-                           INSERT PHIẾU MƯỢN
-
-                           LƯU Ý: tên cột phải khớp đúng bảng thật:
-                             - doc_gia_id      (không phải id_doc_gia)
-                             - ngay_tra_du_kien (không phải ngay_hen_tra)
-                             - id_sach, so_luong là 2 cột mới thêm
-                               (xem file fix_bang_phieu_muon.sql)
-                        ------------------------------------- */
+                        /* =================================================
+                           4.4.3.1. THÊM PHIẾU MƯỢN
+                        ================================================= */
 
                         $sql = "
                             INSERT INTO phieu_muon
@@ -323,28 +282,67 @@ if (
                         ]);
 
 
-                        /* -------------------------------------
-                           CẬP NHẬT SỐ LƯỢNG SÁCH
-                        ------------------------------------- */
+                        /* =================================================
+                           4.4.3.2. TĂNG LƯỢT MƯỢN
+
+                           Mỗi lần tạo phiếu thành công:
+                           luot_muon + 1
+
+                           Ví dụ:
+
+                           0 -> 1
+                           1 -> 2
+                           2 -> 3
+                        ================================================= */
 
                         $sql = "
                             UPDATE sach
-                            SET so_luong = so_luong - :so_luong
+                            SET luot_muon = COALESCE(luot_muon, 0) + 1
                             WHERE id = :id_sach
-                              AND so_luong >= :so_luong
                         ";
 
                         $stmt = $conn->prepare($sql);
 
                         $stmt->execute([
-                            ':so_luong' => $so_luong,
                             ':id_sach' => $id_sach
                         ]);
 
 
-                        /* -------------------------------------
-                           Kiểm tra UPDATE có thành công không
-                        ------------------------------------- */
+                        /* =================================================
+                           KIỂM TRA UPDATE LƯỢT MƯỢN
+                        ================================================= */
+
+                        if ($stmt->rowCount() <= 0) {
+
+                            throw new Exception(
+                                'Không thể cập nhật lượt mượn của sách.'
+                            );
+                        }
+
+
+                        /* =================================================
+                           4.4.3.3. TRỪ SỐ LƯỢNG SÁCH
+                        ================================================= */
+
+                        $sql = "
+                            UPDATE sach
+                            SET so_luong = so_luong - :so_luong_tru
+                            WHERE id = :id_sach
+                              AND so_luong >= :so_luong_kiem_tra
+                        ";
+
+                        $stmt = $conn->prepare($sql);
+
+                        $stmt->execute([
+                            ':so_luong_tru' => $so_luong,
+                            ':id_sach' => $id_sach,
+                            ':so_luong_kiem_tra' => $so_luong
+                        ]);
+
+
+                        /* =================================================
+                           KIỂM TRA UPDATE SỐ LƯỢNG
+                        ================================================= */
 
                         if ($stmt->rowCount() <= 0) {
 
@@ -354,25 +352,28 @@ if (
                         }
 
 
-                        /* Hoàn tất */
+                        /* =================================================
+                           4.4.3.4. HOÀN TẤT TRANSACTION
+                        ================================================= */
+
                         $conn->commit();
 
 
-                        /* -------------------------------------
-                           THÔNG BÁO THÀNH CÔNG
-                        ------------------------------------- */
+                        /* =================================================
+                           4.4.3.5. THÔNG BÁO THÀNH CÔNG
+                        ================================================= */
 
                         $message =
                             'Tạo phiếu mượn thành công cho độc giả "' .
                             $docGia['ho_ten'] .
-                            '".';
+                            '". Lượt mượn của sách đã tăng 1.';
 
                         $messageType = 'success';
 
 
-                        /* -------------------------------------
-                           Reset một số dữ liệu form
-                        ------------------------------------- */
+                        /* =================================================
+                           RESET FORM
+                        ================================================= */
 
                         $id_sach = '';
                         $so_luong = 1;
@@ -380,17 +381,31 @@ if (
                         $ngay_hen_tra = '';
                         $trang_thai = 'Đang mượn';
 
+
                     } catch (Throwable $e) {
 
-                        /* Nếu đang transaction thì rollback */
+                        /* =================================================
+                           CÓ LỖI -> ROLLBACK
+                        ================================================= */
+
                         if ($conn->inTransaction()) {
                             $conn->rollBack();
                         }
 
-                        /* Ghi log chi tiết lỗi phía server, không hiện cho người dùng */
-                        error_log('[phieu_muon] Tạo phiếu mượn thất bại: ' . $e->getMessage());
 
-                        $message = 'Không thể tạo phiếu mượn. Vui lòng thử lại sau.';
+                        /* =================================================
+                           GHI LOG LỖI
+                        ================================================= */
+
+                        error_log(
+                            '[phieu_muon] Tạo phiếu mượn thất bại: ' .
+                            $e->getMessage()
+                        );
+
+
+                        $message =
+                            'Không thể tạo phiếu mượn. Vui lòng thử lại sau.';
+
                         $messageType = 'error';
                     }
                 }
@@ -398,9 +413,14 @@ if (
 
         } catch (PDOException $e) {
 
-            error_log('[phieu_muon] Lỗi CSDL: ' . $e->getMessage());
+            error_log(
+                '[phieu_muon] Lỗi CSDL: ' .
+                $e->getMessage()
+            );
 
-            $message = 'Có lỗi khi xử lý dữ liệu. Vui lòng thử lại sau.';
+            $message =
+                'Có lỗi khi xử lý dữ liệu. Vui lòng thử lại sau.';
+
             $messageType = 'error';
         }
     }
@@ -408,19 +428,20 @@ if (
 
 
 /* =========================================================
-   4. LẤY DANH SÁCH SÁCH CÒN TRONG KHO
+   5. LẤY DANH SÁCH SÁCH CÒN TRONG KHO
 ========================================================= */
 
 try {
 
     $sql = "
-        SELECT
-            id,
-            ten_sach,
-            so_luong
-        FROM sach
-        WHERE so_luong > 0
-        ORDER BY ten_sach ASC
+       SELECT
+    id,
+    ten_sach,
+    so_luong,
+    luot_muon
+FROM sach
+WHERE so_luong > 0
+ORDER BY ten_sach ASC
     ";
 
     $stmt = $conn->query($sql);
@@ -434,27 +455,16 @@ try {
     if ($message === '') {
 
         $message =
-            'Không thể lấy danh sách sách: ' .
-            $e->getMessage();
+            'Không thể lấy danh sách sách.';
 
         $messageType = 'error';
     }
 }
 
-
-/* =========================================================
-   5. MENU
-
-   $nav đã được khai báo đúng cấu trúc mà header.php thật cần
-   (logo / links / login) ở mục 2 ngay từ đầu, nên dùng thẳng
-   $nav cho cả render_header() lẫn header dự phòng bên dưới,
-   không cần tạo biến trung gian nữa.
-========================================================= */
-
 ?>
 
-<!DOCTYPE html>
 
+<!DOCTYPE html>
 <html lang="vi">
 
 <head>
@@ -469,6 +479,9 @@ try {
     <title>
         <?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?>
     </title>
+
+    <!-- CSS CHUNG CỦA WEBSITE -->
+    <link rel="stylesheet" href="style.css">
 
 
     <style>
@@ -498,99 +511,6 @@ try {
 
 
         /* =====================================================
-           HEADER
-        ===================================================== */
-
-        .site-header {
-            background: #fff;
-            border-bottom: 3px solid #fa4b3e;
-        }
-
-        .site-header-inner {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            gap: 28px;
-            padding: 14px 16px;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-right: auto;
-        }
-
-        .brand-mark {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            background: #fa4b3e;
-            color: #fff;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            flex-shrink: 0;
-            font-size: 16px;
-        }
-
-        .brand-name {
-            font-weight: 900;
-            font-size: 18px;
-            color: #10121a;
-        }
-
-        .main-nav {
-            display: flex;
-            align-items: center;
-            gap: 22px;
-            flex-wrap: wrap;
-        }
-
-        .main-nav a {
-            text-decoration: none;
-            color: #10121a;
-            font-size: 13px;
-            font-weight: 700;
-            white-space: nowrap;
-        }
-
-        .main-nav a.active {
-            color: #fa4b3e;
-        }
-
-        .main-nav a:hover {
-            color: #fa4b3e;
-        }
-
-        .btn-login {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-
-            background: #fa4b3e;
-            color: #fff;
-
-            text-decoration: none;
-
-            font-size: 13px;
-            font-weight: 700;
-
-            padding: 10px 18px;
-            border-radius: 6px;
-
-            white-space: nowrap;
-        }
-
-        .btn-login:hover {
-            background: #e03a2d;
-        }
-
-
-        /* =====================================================
            BANNER
         ===================================================== */
 
@@ -611,12 +531,14 @@ try {
             justify-content: center;
         }
 
+
         .banner-overlay {
             position: absolute;
             inset: 0;
 
             background: rgba(0, 0, 0, 0.65);
         }
+
 
         .banner h1 {
             position: relative;
@@ -665,11 +587,13 @@ try {
             border-radius: 4px;
         }
 
+
         .message.success {
             background: #d9f5df;
             color: #176b2c;
             border: 1px solid #9ed7aa;
         }
+
 
         .message.error {
             background: #ffe0e0;
@@ -688,15 +612,18 @@ try {
             width: 100%;
         }
 
+
         .form-group {
             margin-bottom: 24px;
         }
+
 
         .name {
             flex: 3;
         }
 
-        .birthday {
+
+        .password {
             flex: 2;
         }
 
@@ -739,47 +666,12 @@ try {
             outline: none;
         }
 
+
         .form-group input:focus,
         .form-group select:focus,
         .date-box input:focus {
 
             border-color: #fa4b3e;
-        }
-
-
-        /* =====================================================
-           ADDRESS
-        ===================================================== */
-
-        .address {
-            display: flex;
-            gap: 30px;
-        }
-
-        .address input {
-            height: 48px;
-
-            padding: 10px 14px;
-
-            border: 1px solid #bbb;
-
-            background: #fff;
-
-            font-size: 14px;
-
-            outline: none;
-        }
-
-        .address input:nth-child(1) {
-            width: 20%;
-        }
-
-        .address input:nth-child(2) {
-            width: 25%;
-        }
-
-        .address input:nth-child(3) {
-            width: 55%;
         }
 
 
@@ -803,6 +695,7 @@ try {
         .payment {
             position: relative;
         }
+
 
         .payment h2 {
             font-size: 15px;
@@ -846,9 +739,11 @@ try {
             margin-bottom: 24px;
         }
 
+
         .date-box {
             width: 50%;
         }
+
 
         .date-box input {
             width: 100%;
@@ -866,6 +761,7 @@ try {
 
             margin-top: 10px;
         }
+
 
         .borrow-button {
             width: 150px;
@@ -885,21 +781,9 @@ try {
             cursor: pointer;
         }
 
+
         .borrow-button:hover {
             background: #d90000;
-        }
-
-
-        /* =====================================================
-           FOOTER
-        ===================================================== */
-
-        .footer-black {
-            background: #0c0c0c;
-
-            color: #fff;
-
-            margin-top: 8px;
         }
 
 
@@ -909,38 +793,25 @@ try {
 
         @media (max-width: 900px) {
 
-            .site-header-inner {
-                flex-wrap: wrap;
-            }
-
-            .main-nav {
-                order: 3;
-
-                width: 100%;
-
-                gap: 16px;
-
-                justify-content: center;
-
-                padding-top: 6px;
-            }
-
             .row {
                 flex-direction: column;
 
                 gap: 0;
             }
 
+
             .name,
-            .birthday {
+            .password {
                 width: 100%;
             }
+
 
             .date-row {
                 flex-direction: column;
 
                 gap: 0;
             }
+
 
             .date-box {
                 width: 100%;
@@ -955,30 +826,16 @@ try {
                 height: 150px;
             }
 
+
             .banner h1 {
                 font-size: 24px;
             }
+
 
             .form-container {
                 width: calc(100% - 20px);
 
                 padding: 20px;
-            }
-
-            .address {
-                flex-direction: column;
-
-                gap: 10px;
-            }
-
-            .address input:nth-child(1),
-            .address input:nth-child(2),
-            .address input:nth-child(3) {
-                width: 100%;
-            }
-
-            .main-nav {
-                gap: 12px;
             }
 
         }
@@ -992,76 +849,10 @@ try {
 
 
     <!-- =====================================================
-         HEADER
+         HEADER DÙNG CHUNG VỚI INDEX.PHP
     ====================================================== -->
 
-    <?php
-
-    /*
-     * Nếu header.php của bạn có sẵn hàm render_header()
-     * thì dùng header cũ của bạn.
-     */
-
-    if (file_exists(__DIR__ . '/header.php')) {
-
-        include __DIR__ . '/header.php';
-
-        if (function_exists('render_header')) {
-
-            render_header($nav, $activeKey);
-
-        }
-
-    } else {
-
-    ?>
-
-        <header class="site-header">
-
-            <div class="site-header-inner">
-
-                <div class="brand">
-
-                    <div class="brand-mark">
-                        🔍
-                    </div>
-
-                    <div class="brand-name">
-                        <?= htmlspecialchars($nav['logo'], ENT_QUOTES, 'UTF-8') ?>
-                    </div>
-
-                </div>
-
-
-                <nav class="main-nav">
-
-                    <?php foreach ($nav['links'] as $link): ?>
-
-                        <a
-                            href="<?= htmlspecialchars($link['href'], ENT_QUOTES, 'UTF-8') ?>"
-                            class="<?= $link['key'] === $activeKey ? 'active' : '' ?>"
-                        >
-                            <?= htmlspecialchars($link['label'], ENT_QUOTES, 'UTF-8') ?>
-                        </a>
-
-                    <?php endforeach; ?>
-
-                </nav>
-
-
-                <a href="#" class="btn-login">
-                    👤 <?= htmlspecialchars($nav['login'], ENT_QUOTES, 'UTF-8') ?>
-                </a>
-
-            </div>
-
-        </header>
-
-    <?php
-
-    }
-
-    ?>
+    <?php render_header($nav, 'borrow'); ?>
 
 
     <!-- =====================================================
@@ -1073,7 +864,11 @@ try {
         <div class="banner-overlay"></div>
 
         <h1>
-            <?= htmlspecialchars($pageTitle, ENT_QUOTES, 'UTF-8') ?>
+            <?= htmlspecialchars(
+                $pageTitle,
+                ENT_QUOTES,
+                'UTF-8'
+            ) ?>
         </h1>
 
     </section>
@@ -1096,9 +891,19 @@ try {
 
         <?php if ($message !== ''): ?>
 
-            <div class="message <?= htmlspecialchars($messageType, ENT_QUOTES, 'UTF-8') ?>">
+            <div
+                class="message <?= htmlspecialchars(
+                    $messageType,
+                    ENT_QUOTES,
+                    'UTF-8'
+                ) ?>"
+            >
 
-                <?= htmlspecialchars($message, ENT_QUOTES, 'UTF-8') ?>
+                <?= htmlspecialchars(
+                    $message,
+                    ENT_QUOTES,
+                    'UTF-8'
+                ) ?>
 
             </div>
 
@@ -1121,7 +926,11 @@ try {
                     type="text"
                     id="tai_khoan"
                     name="tai_khoan"
-                    value="<?= htmlspecialchars($tai_khoan, ENT_QUOTES, 'UTF-8') ?>"
+                    value="<?= htmlspecialchars(
+                        $tai_khoan,
+                        ENT_QUOTES,
+                        'UTF-8'
+                    ) ?>"
                     placeholder="Nhập tài khoản"
                     required
                 >
@@ -1149,7 +958,7 @@ try {
 
 
         <!-- =================================================
-             HỌ TÊN + NGÀY SINH
+             HỌ TÊN
         ================================================== -->
 
         <div class="row">
@@ -1164,20 +973,15 @@ try {
                     type="text"
                     id="ho_ten"
                     name="ho_ten"
-                    value="<?= htmlspecialchars($ho_ten, ENT_QUOTES, 'UTF-8') ?>"
+                    value="<?= htmlspecialchars(
+                        $ho_ten,
+                        ENT_QUOTES,
+                        'UTF-8'
+                    ) ?>"
                     placeholder="Nhập họ và tên"
                 >
 
             </div>
-
-
-
-        </div>
-
-
-
-    
-
 
         </div>
 
@@ -1210,7 +1014,6 @@ try {
                     CHỌN SÁCH
                 </label>
 
-
                 <select
                     id="id_sach"
                     name="id_sach"
@@ -1225,25 +1028,24 @@ try {
 
                     <?php foreach ($books as $book): ?>
 
-                        <option
-                            value="<?= (int)$book['id'] ?>"
-                            <?= ((string)$id_sach === (string)$book['id']) ? 'selected' : '' ?>
-                        >
+    <option
+        value="<?= (int)$book['id'] ?>"
+        <?= (
+            (string)$id_sach ===
+            (string)$book['id']
+        ) ? 'selected' : '' ?>
+    >
+        <?= htmlspecialchars(
+            $book['ten_sach'],
+            ENT_QUOTES,
+            'UTF-8'
+        ) ?>
 
-                            <?= htmlspecialchars(
-                                $book['ten_sach'],
-                                ENT_QUOTES,
-                                'UTF-8'
-                            ) ?>
+        - Còn <?= (int)$book['so_luong'] ?> quyển
+        - <?= (int)$book['luot_muon'] ?> lượt mượn
+    </option>
 
-                            - Còn
-                            <?= (int)$book['so_luong'] ?>
-                            quyển
-
-                        </option>
-
-                    <?php endforeach; ?>
-
+<?php endforeach; ?>
 
                 </select>
 
@@ -1259,7 +1061,6 @@ try {
                 <label for="so_luong">
                     SỐ LƯỢNG
                 </label>
-
 
                 <input
                     type="number"
@@ -1279,7 +1080,6 @@ try {
 
             <div class="date-row">
 
-
                 <div class="date-box">
 
                     <label for="ngay_muon">
@@ -1290,7 +1090,11 @@ try {
                         type="date"
                         id="ngay_muon"
                         name="ngay_muon"
-                        value="<?= htmlspecialchars($ngay_muon, ENT_QUOTES, 'UTF-8') ?>"
+                        value="<?= htmlspecialchars(
+                            $ngay_muon,
+                            ENT_QUOTES,
+                            'UTF-8'
+                        ) ?>"
                         required
                     >
 
@@ -1307,12 +1111,15 @@ try {
                         type="date"
                         id="ngay_hen_tra"
                         name="ngay_hen_tra"
-                        value="<?= htmlspecialchars($ngay_hen_tra, ENT_QUOTES, 'UTF-8') ?>"
+                        value="<?= htmlspecialchars(
+                            $ngay_hen_tra,
+                            ENT_QUOTES,
+                            'UTF-8'
+                        ) ?>"
                         required
                     >
 
                 </div>
-
 
             </div>
 
@@ -1327,7 +1134,6 @@ try {
                     TRẠNG THÁI
                 </label>
 
-
                 <select
                     id="trang_thai"
                     name="trang_thai"
@@ -1336,7 +1142,10 @@ try {
 
                     <option
                         value="Đang mượn"
-                        <?= $trang_thai === 'Đang mượn' ? 'selected' : '' ?>
+                        <?= $trang_thai === 'Đang mượn'
+                            ? 'selected'
+                            : ''
+                        ?>
                     >
                         Đang mượn
                     </option>
@@ -1344,7 +1153,10 @@ try {
 
                     <option
                         value="Đã trả"
-                        <?= $trang_thai === 'Đã trả' ? 'selected' : '' ?>
+                        <?= $trang_thai === 'Đã trả'
+                            ? 'selected'
+                            : ''
+                        ?>
                     >
                         Đã trả
                     </option>
@@ -1370,30 +1182,16 @@ try {
 
             </div>
 
-
         </section>
-
 
     </form>
 
 
     <!-- =====================================================
-         FOOTER
+         FOOTER DÙNG CHUNG VỚI INDEX.PHP
     ====================================================== -->
 
-    <div class="footer-black">
-
-        <?php
-
-        if (file_exists(__DIR__ . '/footer.php')) {
-
-            include __DIR__ . '/footer.php';
-
-        }
-
-        ?>
-
-    </div>
+    <?php render_footer($footer); ?>
 
 
     <!-- =====================================================
@@ -1402,9 +1200,9 @@ try {
 
     <script>
 
-        /*
-         * Không cho ngày hẹn trả nhỏ hơn ngày mượn
-         */
+        /* -----------------------------------------------------
+           Không cho ngày hẹn trả nhỏ hơn ngày mượn
+        ----------------------------------------------------- */
 
         const ngayMuon =
             document.getElementById('ngay_muon');
@@ -1415,27 +1213,30 @@ try {
 
         if (ngayMuon && ngayHenTra) {
 
-            ngayMuon.addEventListener('change', function () {
+            ngayMuon.addEventListener(
+                'change',
+                function () {
 
-                ngayHenTra.min = this.value;
+                    ngayHenTra.min = this.value;
 
-                if (
-                    ngayHenTra.value &&
-                    ngayHenTra.value < this.value
-                ) {
+                    if (
+                        ngayHenTra.value &&
+                        ngayHenTra.value < this.value
+                    ) {
 
-                    ngayHenTra.value = '';
+                        ngayHenTra.value = '';
+
+                    }
 
                 }
-
-            });
+            );
 
         }
 
 
-        /*
-         * Khi chọn sách, số lượng mặc định là 1
-         */
+        /* -----------------------------------------------------
+           Khi chọn sách, số lượng mặc định là 1
+        ----------------------------------------------------- */
 
         const selectSach =
             document.getElementById('id_sach');
@@ -1446,15 +1247,18 @@ try {
 
         if (selectSach && soLuong) {
 
-            selectSach.addEventListener('change', function () {
+            selectSach.addEventListener(
+                'change',
+                function () {
 
-                if (this.value !== '') {
+                    if (this.value !== '') {
 
-                    soLuong.value = 1;
+                        soLuong.value = 1;
+
+                    }
 
                 }
-
-            });
+            );
 
         }
 
