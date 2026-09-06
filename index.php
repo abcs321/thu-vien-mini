@@ -1,88 +1,99 @@
 <?php
-/**
- * Trang chủ thư viện (bản Harry Potter) — đã tách phần dùng chung ra includes.php.
- * Header/Footer/menu dùng chung: xem includes.php.
- * File này chỉ còn giữ dữ liệu + giao diện RIÊNG của trang chủ:
- *   - $featured / render_featured() : khối sách nổi bật, có info-bg dạng
- *     GHÉP DẢI nhiều ảnh (bg_images) thay vì 1 ảnh mờ như bản gốc.
- *   - $carousel / render_carousel() : dải "Sắp ra mắt", ảnh hiển thị kiểu
- *     background-image (object-fit contain) thay vì thẻ <img>.
- *   - $grid / render_grid()         : lưới sách thể thao.
- *
- * ================== GHI CHÚ: CÁC CHỖ CẦN THAY ẢNH ==================
- *   1. $featured['cover']            -> ảnh bìa lớn bên trái
- *   2. $featured['bg_images'][0..n]  -> DÃY ảnh nền ghép dải bên phải (info-bg)
- *   3. $carousel['covers'][0..n]     -> ảnh trong dải "Sắp ra mắt"
- *   4. $grid['items'][n]['cover']    -> ảnh từng cuốn trong lưới sách thể thao
- *   5. $hero['bg']                    -> ảnh nền banner đầu trang
- * =====================================================================
- */
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 require __DIR__ . '/includes.php'; // $nav, $footer, esc(), render_tag(), render_header(), render_footer()...
+require __DIR__ . '/db.php';       // $pdo (PDO connection)
+require __DIR__ . '/queries.php';  // fetch_featured_book(), fetch_carousel_books(), fetch_books_by_category()...
 
-/* ---------- Dữ liệu Harry Potter + sách thể thao (giữ nguyên như bạn đã sửa) ---------- */
+// Admin đang đăng nhập thì được phép bấm "Tìm hiểu thêm" để chỉnh sửa sách
+$isAdmin = (($_SESSION['vai_tro'] ?? '') === 'admin');
 
-$featured = [
-    'cover'   => 'images/Harry-Potter1.jpg', // ẢNH: bìa sách lớn bên trái
+// ---- Độc giả đang đăng nhập & danh sách sách đang mượn của họ ----
+// TODO: đổi 'id_doc_gia' thành đúng key session mà trang login.php của bạn đang lưu
+$currentReaderId = $_SESSION['id_doc_gia'] ?? null;
+$isLoggedIn = $currentReaderId !== null;
 
-    'bg_images' => [
-        // ẢNH: mỗi dòng là 1 ảnh trong dải ghép làm nền panel bên phải
-        'images/Harry-Potter2.jpg',
-        'images/Harry-Potter3.jpg',
-        'images/Harry-Potter4.jpg',
-        'images/Harry-Potter5.jpg',
-    ],
+// fetch_active_borrows($pdo, $id_doc_gia) cần được thêm vào queries.php, xem gợi ý cấu trúc bên dưới.
+// Trả về mảng các phiếu mượn CHƯA TRẢ, mỗi phần tử dạng:
+// ['ma_phieu' => ..., 'ten_sach' => ..., 'so_luong' => ..., 'han_tra' => 'YYYY-MM-DD']
+$activeBorrows = $isLoggedIn && function_exists('fetch_active_borrows')
+    ? fetch_active_borrows($pdo, $currentReaderId)
+    : [];
 
-    'title'   => 'Loạt tiểu thuyết harry potter',
-    'genres'  => ['MA THUẬT', 'BÍ ẨN', 'PHIÊU LƯU'],
-    'author'  => 'JK Rowling',
-    'status'  => ['label' => 'HOÀN THIỆN', 'type' => 'green'],
-    'physical'=> [
-        ['label' => 'CÓ', 'type' => 'blue'],
-        ['label' => 'CÒN SÁCH', 'type' => 'teal'],
-    ],
-    'reads'   => 3021789,
-    'movie'   => [
-        ['label' => 'LIVE ACTION', 'type' => 'brown'],
-        ['label' => 'HOÀN THIỆN', 'type' => 'green'],
-    ],
-];
+// ---- Sách nổi bật (nhiều lượt mượn nhất) ----
+$featured = fetch_featured_book($pdo);
+
+// Nếu CSDL chưa có sách nào thì dùng dữ liệu mẫu để trang không bị trống khi demo
+if ($featured === null) {
+    $featured = [
+        'id'       => 0,
+        'cover'    => 'images/placeholder-cover.jpg',
+        'bg_images'=> [],
+        'title'    => 'Chưa có dữ liệu sách',
+        'genres'   => [],
+        'author'   => '',
+        'status'   => ['label' => 'ĐANG CẬP NHẬT', 'type' => 'navy'],
+        'physical' => [],
+        'reads'    => 0,
+        'movie'    => [],
+    ];
+}
+
+// ---- Carousel "SẮP RA MẮT": mục do admin tự quản lý (tiêu đề + ảnh bìa + sách liên kết) ----
+$carouselSection = fetch_section_by_key($pdo, 'sap_ra_mat');
+$carouselItems   = $carouselSection ? fetch_section_images($pdo, $carouselSection['id_muc']) : [];
+
+// Xáo trộn thứ tự ảnh bìa mỗi lần tải trang, để carousel hiển thị ngẫu nhiên trong số sách admin đã chọn
+if (!empty($carouselItems)) {
+    shuffle($carouselItems);
+}
+
+// Chỉ hiện tối đa 4 sách
+$carouselItems = array_slice($carouselItems, 0, 4);
 
 $carousel = [
-    'title'  => 'SẮP RA MẮT',
-    'covers' => [
-        // ẢNH: từng ảnh trong dải carousel
-        'images/cach-menh.jpg',
-        'images/onepunch.jpg',
-        'images/novek.jpg',
-    ],
+    'key'    => 'sap_ra_mat',
+    'title'  => $carouselSection['tieu_de'] ?? 'SẮP RA MẮT',
+    'covers' => array_map(
+        fn($item) => ['url' => $item['anh_bia'], 'id_sach' => $item['id_sach']],
+        $carouselItems
+    ),
 ];
 
+// ---- Grid "SÁCH THỂ THAO": sách thuộc category "Thể thao" ----
 $grid = [
     'title' => 'SÁCH THỂ THAO',
-    'items' => [
-        // ẢNH: key 'cover' của từng phần tử
-        ['cover' => 'images/sport1.jpg', 'label' => 'Mê Cung Bóng Tối'],
-        ['cover' => 'images/sport2.jpg', 'label' => 'Đêm Không Trăng'],
-        ['cover' => 'images/sport3.jpg', 'label' => 'Sắc Màu Định Mệnh'],
-    ],
+    'items' => fetch_books_by_category($pdo, 'Thể thao', 3),
 ];
 
 $hero = [
     'bg'      => 'images/hero-library.jpg', // ẢNH: nền banner đầu trang
     'heading' => 'Thư viện là nơi lưu giữ, sắp xếp và cung cấp các nguồn lực thông tin như sách, báo, tài liệu số và phương tiện điện tử',
-    'cta'     => 'Đặt chỗ ngay',
-    'search'  => [
-        'from'   => 'Đi từ...',
-        'to'     => 'Đến...',
-        'date'   => 'dd/mm/yyyy',
-        'submit' => 'Tìm kiếm',
-    ],
+    'cta'     => 'Đăng nhập để xem chi tiết',
 ];
 
-/* ---------- Hàm dựng giao diện RIÊNG của trang chủ (đã tùy biến) ---------- */
+// Số ngày còn lại (âm = đã quá hạn) tính từ hôm nay tới hạn trả
+function days_until(string $hanTra): int
+{
+    $today = new DateTime('today');
+    $due   = new DateTime($hanTra);
+    return (int) $today->diff($due)->format('%r%a');
+}
 
-function render_hero(array $hero): void
+// Class CSS theo mức độ gấp: còn <=7 ngày (kể cả quá hạn) thì cam->đỏ, ngược lại bình thường
+function due_urgency_class(int $daysLeft): string
+{
+    if ($daysLeft < 0)  return 'due-overdue';   // đã quá hạn -> đỏ đậm
+    if ($daysLeft <= 2) return 'due-critical';  // rất gấp -> đỏ
+    if ($daysLeft <= 7) return 'due-warning';   // gấp -> cam
+    return 'due-normal';                        // còn nhiều thời gian
+}
+
+
+function render_hero(array $hero, bool $isLoggedIn, array $activeBorrows): void
 {
     ?>
     <div class="hero-section">
@@ -91,29 +102,50 @@ function render_hero(array $hero): void
         <div class="hero-overlay"></div>
         <div class="hero-content">
             <p class="hero-heading"><?= esc($hero['heading']) ?></p>
-            <a href="#" class="btn-cta"><?= esc($hero['cta']) ?></a>
 
-            <div class="search-bar">
-                <div class="search-field">
-                    <label><?= esc($hero['search']['from']) ?></label>
+            <?php if (!$isLoggedIn): ?>
+                <a href="login.php" class="btn-cta"><?= esc($hero['cta']) ?></a>
+            <?php else: ?>
+                <div class="borrow-table-wrap">
+                    <?php if (empty($activeBorrows)): ?>
+                        <p class="empty-state">Bạn hiện không mượn sách nào.</p>
+                    <?php else: ?>
+                    <table class="borrow-table">
+                        <thead>
+                            <tr>
+                                <th>TÊN SÁCH</th>
+                                <th>MÃ SÁCH</th>
+                                <th>SỐ LƯỢNG</th>
+                                <th>Trả trong</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($activeBorrows as $borrow): ?>
+                                <?php
+                                    $daysLeft = days_until($borrow['han_tra']);
+                                    $urgencyClass = due_urgency_class($daysLeft);
+                                    $dueLabel = $daysLeft < 0
+                                        ? 'Quá hạn ' . abs($daysLeft) . ' ngày'
+                                        : $daysLeft . ' ngày';
+                                ?>
+                                <tr>
+                                    <td><?= esc($borrow['ten_sach']) ?></td>
+                                    <td><?= esc($borrow['ma_phieu']) ?></td>
+                                    <td><?= esc($borrow['so_luong']) ?></td>
+                                    <td class="<?= esc($urgencyClass) ?>"><?= esc($dueLabel) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    <?php endif; ?>
                 </div>
-                <div class="search-divider"></div>
-                <div class="search-field">
-                    <label><?= esc($hero['search']['to']) ?></label>
-                </div>
-                <div class="search-divider"></div>
-                <div class="search-field search-field-date">
-                    <label><?= esc($hero['search']['date']) ?></label>
-                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="16" y1="3" x2="16" y2="7"/></svg>
-                </div>
-                <button type="button" class="btn-search"><?= esc($hero['search']['submit']) ?></button>
-            </div>
+            <?php endif; ?>
         </div>
     </div>
     <?php
 }
 
-function render_featured(array $book): void
+function render_featured(array $book, bool $isAdmin = false): void
 {
     ?>
     <div class="book-showcase">
@@ -122,11 +154,9 @@ function render_featured(array $book): void
         </div>
         <div class="showcase-body">
             <div class="showcase-cover">
-                <!-- ẢNH: bìa sách lớn, lấy từ $book['cover'] -->
                 <img src="<?= esc($book['cover']) ?>" alt="<?= esc($book['title']) ?>">
             </div>
             <div class="showcase-info">
-                <!-- ẢNH: dải nền ghép nhiều ảnh, lấy từ $book['bg_images'] -->
                 <div class="info-bg">
                     <?php if (!empty($book['bg_images'])): ?>
                         <?php foreach ($book['bg_images'] as $bgImg): ?>
@@ -174,7 +204,11 @@ function render_featured(array $book): void
                         <?php endforeach; ?>
                     </div>
 
-                    <a href="#" class="btn-more">Tìm hiểu thêm</a>
+                    <?php if ($isAdmin && !empty($book['id'])): ?>
+                        <a href="sua-sach.php?id=<?= (int) $book['id'] ?>" class="btn-more">Chỉnh sửa (Admin)</a>
+                    <?php else: ?>
+                        <a href="#" class="btn-more">Tìm hiểu thêm</a>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -182,18 +216,24 @@ function render_featured(array $book): void
     <?php
 }
 
-function render_carousel(array $section): void
+function render_carousel(array $section, bool $isAdmin = false): void
 {
     ?>
     <div class="carousel-section">
         <div class="section-header">
             <h1><?= esc($section['title']) ?></h1>
         </div>
+        <?php if (empty($section['covers'])): ?>
+            <p class="empty-state">Chưa có dữ liệu.</p>
+        <?php else: ?>
         <div class="carousel-track-wrap">
             <div class="carousel-track">
                 <?php foreach ($section['covers'] as $cover): ?>
-                    <!-- ẢNH: từng ảnh carousel, lấy từ $carousel['covers'] -->
-                    <div class="carousel-item" style="background-image: url('<?= esc($cover) ?>');"></div>
+                    <?php if (!empty($cover['id_sach'])): ?>
+                        <a href="discover.php#sach-<?= (int) $cover['id_sach'] ?>" class="carousel-item" style="background-image: url('<?= esc($cover['url']) ?>'); display: block; text-decoration: none;"></a>
+                    <?php else: ?>
+                        <div class="carousel-item" style="background-image: url('<?= esc($cover['url']) ?>');"></div>
+                    <?php endif; ?>
                 <?php endforeach; ?>
             </div>
             <div class="carousel-dots">
@@ -202,8 +242,14 @@ function render_carousel(array $section): void
                 <?php endforeach; ?>
             </div>
         </div>
+        <?php endif; ?>
         <div class="carousel-footer">
-            <a href="#" class="btn-more">Tìm hiểu thêm</a>
+            <a href="login.php" class="btn-login">Đăng nhập</a>
+            <?php if ($isAdmin): ?>
+                <a href="sua-carousel.php?key=<?= urlencode($section['key'] ?? '') ?>" class="btn-more">Chỉnh sửa (Admin)</a>
+            <?php else: ?>
+                <a href="#" class="btn-more">Tìm hiểu thêm</a>
+            <?php endif; ?>
         </div>
     </div>
     <?php
@@ -216,15 +262,18 @@ function render_grid(array $section): void
         <div class="section-header">
             <h1><?= esc($section['title']) ?></h1>
         </div>
+        <?php if (empty($section['items'])): ?>
+            <p class="empty-state">Chưa có dữ liệu.</p>
+        <?php else: ?>
         <div class="grid-body">
             <?php foreach ($section['items'] as $item): ?>
                 <div class="grid-item">
-                    <!-- ẢNH: bìa sách trong lưới, lấy từ $item['cover'] -->
                     <img src="<?= esc($item['cover']) ?>" alt="<?= esc($item['label']) ?>">
                     <a href="#" class="btn-more">Tìm hiểu thêm</a>
                 </div>
             <?php endforeach; ?>
         </div>
+        <?php endif; ?>
     </div>
     <?php
 }
@@ -237,14 +286,81 @@ function render_grid(array $section): void
 <title>Trang chủ thư viện</title>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<style>
+/* Bảng "sách đang mượn" trong hero — nhúng trực tiếp để chắc chắn áp dụng */
+.borrow-table-wrap {
+    width: 100%;
+    max-width: 720px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    margin-top: 16px;
+}
+
+.borrow-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.borrow-table thead th {
+    background: #B7B7B7;
+    color: #fff;
+    font-size: 13px;
+    letter-spacing: .03em;
+    padding: 10px 14px;
+    text-transform: uppercase;
+}
+
+.borrow-table thead th:first-child { border-radius: 8px 0 0 8px; }
+.borrow-table thead th:last-child  { border-radius: 0 8px 8px 0; }
+
+.borrow-table tbody td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+    color: #333;
+}
+
+.due-normal, .due-warning, .due-critical, .due-overdue {
+    background: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    display: inline !important;
+}
+
+.due-normal {
+    color: #333 !important;
+    font-weight: 600 !important;
+}
+
+/* Còn <= 7 ngày: chữ tông cam, không tạo khung nền */
+.due-warning {
+    color: #d97706 !important;
+    font-weight: 700 !important;
+}
+
+/* Còn <= 2 ngày: chữ đỏ cam đậm hơn */
+.due-critical {
+    color: #e0431f !important;
+    font-weight: 700 !important;
+}
+
+/* Đã quá hạn: chữ đỏ đậm nhất */
+.due-overdue {
+    color: #c81e1e !important;
+    font-weight: 700 !important;
+}
+</style>
 </head>
 <body>
 
 <?php render_header($nav, 'home'); ?>
-<?php render_hero($hero); ?>
+<?php render_hero($hero, $isLoggedIn, $activeBorrows); ?>
 <div class="page-body">
-    <?php render_featured($featured); ?>
-    <?php render_carousel($carousel); ?>
+    <?php render_featured($featured, $isAdmin); ?>
+    <?php render_carousel($carousel, $isAdmin); ?>
     <?php render_grid($grid); ?>
 </div>
 <?php render_footer($footer); ?>

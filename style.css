@@ -2,7 +2,77 @@
    style.css — Toàn bộ giao diện, tách từ file index.php (bản Harry Potter)
    + phần CSS cho trang "Danh sách sách" (danh-sach-sach.php) nối thêm ở cuối.
    ===================================================================== */
+/* ===== Thêm vào style.css: bảng sách đang mượn trong hero ===== */
 
+.borrow-table-wrap {
+    width: 100%;
+    max-width: 720px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    margin-top: 16px;
+}
+
+.borrow-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.borrow-table thead th {
+    background: #6b6b6b;
+    color: #fff;
+    font-size: 13px;
+    letter-spacing: .03em;
+    padding: 10px 14px;
+    text-transform: uppercase;
+}
+
+.borrow-table thead th:first-child { border-radius: 8px 0 0 8px; }
+.borrow-table thead th:last-child  { border-radius: 0 8px 8px 0; }
+
+.borrow-table tbody td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+    color: #333;
+}
+
+/* Mức độ gấp của hạn trả: còn nhiều thời gian -> bình thường */
+.due-normal {
+    color: #333;
+    font-weight: 500;
+}
+
+/* Còn <= 7 ngày: tông cam */
+.due-warning {
+    color: #b45309;
+    font-weight: 700;
+    background: #fff3e0;
+    border-radius: 6px;
+}
+
+/* Còn <= 2 ngày: đỏ cam đậm hơn */
+.due-critical {
+    color: #d13b1f;
+    font-weight: 700;
+    background: #ffe3d9;
+    border-radius: 6px;
+}
+
+/* Đã quá hạn: đỏ đậm nhất, nổi bật nhất */
+.due-overdue {
+    color: #fff;
+    font-weight: 700;
+    background: #dc2626;
+    border-radius: 6px;
+}
+
+.due-normal, .due-warning, .due-critical, .due-overdue {
+    display: inline-block;
+    padding: 4px 10px;
+}
 :root {
     --font-display: 'Roboto', Arial, Helvetica, sans-serif;
     --font-body: 'Roboto', Arial, sans-serif;
@@ -376,7 +446,8 @@ body {
 }
 .category-track-wrap { position: relative; background: #000; border-radius: 0; overflow: hidden; }
 .category-track {
-    display: flex; gap: 0;
+    display: flex; gap: 14px;
+    padding: 14px;
     overflow-x: auto; scroll-snap-type: x mandatory;
     scrollbar-width: none;
     -ms-overflow-style: none; 
@@ -385,8 +456,10 @@ body {
     display: none;
 }
 .category-track img {
-    flex: 0 0 38%; width: 38%; aspect-ratio: 3 / 4;
+    flex: 0 0 150px; width: 150px; max-width: 150px;
+    height: 200px; max-height: 200px; aspect-ratio: 3 / 4;
     object-fit: cover; display: block; scroll-snap-align: start;
+    border-radius: 6px;
 }
 .category-dots {
     position: absolute; top: 0; right: 0; bottom: 0;
@@ -403,7 +476,7 @@ body {
 }
 
 @media (max-width: 640px) {
-    .category-track img { flex: 0 0 50%; width: 50%; }
+    .category-track img { flex: 0 0 110px; width: 110px; max-width: 110px; height: 146px; max-height: 146px; }
 }
 /* ================= FORM ĐĂNG NHẬP ================= */
 

@@ -30,26 +30,24 @@ $sort = [
     'active'  => 0, // chỉ số của mục đang chọn trong 'options'
 ];
 
-/* ---------- Lấy các TAG (thể loại/genres) + bìa sách từ CSDL ---------- */
-// Đổi từ gom theo categories (danh mục lớn) sang gom trực tiếp theo genres
-// (thể loại/tag thật của từng sách, vd "Manga"), vì mỗi sách chỉ có 1
-// id_genre — đây chính là "tag" mà các sách cùng tag sẽ được nhóm chung.
+/* ---------- Lấy danh mục + bìa sách từ CSDL (thay cho mảng cứng cũ) ---------- */
 
-function fetch_genre_tags_from_db(PDO $pdo): array
+function fetch_categories_from_db(PDO $pdo): array
 {
-    $tags = [];
+    $categories = [];
 
-    $stmt = $pdo->query('SELECT id_genre, ten_genre FROM genres ORDER BY ten_genre');
+    $stmt = $pdo->query('SELECT id_category, ten_category FROM categories ORDER BY id_category');
 
-    foreach ($stmt->fetchAll() as $genre) {
-        // Lấy các sách thuộc đúng tag này, xáo ngẫu nhiên thứ tự hiển thị
+    foreach ($stmt->fetchAll() as $cat) {
+        // Mỗi category có thể gồm nhiều genre (thể loại con); sách được gắn qua genres
         $bookStmt = $pdo->prepare(
-            'SELECT anh_bia, ten_sach
-             FROM sach
-             WHERE id_genre = :id_genre
-             ORDER BY RAND()'
+            'SELECT s.anh_bia, s.ten_sach
+             FROM sach s
+             INNER JOIN genres g ON s.id_genre = g.id_genre
+             WHERE g.id_category = :id_category
+             ORDER BY s.ngay_them DESC'
         );
-        $bookStmt->execute(['id_genre' => $genre['id_genre']]);
+        $bookStmt->execute(['id_category' => $cat['id_category']]);
 
         $covers = [];
         foreach ($bookStmt->fetchAll() as $book) {
@@ -59,17 +57,17 @@ function fetch_genre_tags_from_db(PDO $pdo): array
             ];
         }
 
-        $tags[] = [
-            'id'     => (int) $genre['id_genre'],
-            'label'  => $genre['ten_genre'],
+        $categories[] = [
+            'id'     => (int) $cat['id_category'],
+            'label'  => $cat['ten_category'],
             'covers' => $covers,
         ];
     }
 
-    return $tags;
+    return $categories;
 }
 
-$categories = fetch_genre_tags_from_db($pdo);
+$categories = fetch_categories_from_db($pdo);
 
 /* ---------- Hàm dựng giao diện riêng của trang danh sách sách ---------- */
 
@@ -122,9 +120,6 @@ function render_book_category(array $cat, bool $is_admin): void
         <div class="category-header">
             <span class="category-label"><?= esc($cat['label']) ?></span>
             <?php if ($is_admin): ?>
-                <!-- LƯU Ý: $cat['id'] giờ là id_genre (tag), không còn là id_category như trước.
-                     Cần kiểm tra quan-ly-danh-muc.php có xử lý đúng theo id_genre không,
-                     nếu không thì đổi link này sang trang quản lý thể loại tương ứng. -->
                 <a class="btn-edit-category" href="quan-ly-danh-muc.php?id=<?= (int) $cat['id'] ?>">Chỉnh sửa</a>
             <?php endif; ?>
         </div>
@@ -157,7 +152,7 @@ function render_book_category(array $cat, bool $is_admin): void
 <title>Danh sách sách - Thư viện</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Montserrat:wght@700;800;900&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <style>
 /* CSS bổ sung cho nút admin — nên chuyển vào style.css sau này */

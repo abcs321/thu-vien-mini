@@ -1,13 +1,18 @@
 <?php
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 $nav = [
     'logo'  => 'THƯ VIỆN',
     'links' => [
         ['label' => 'TRANG CHỦ',      'href' => 'index.php',           'key' => 'home'],
-        ['label' => 'VỀ CHÚNG TÔI',   'href' => '#',                    'key' => 'about'],
+        ['label' => 'VỀ CHÚNG TÔI',   'href' => 'aboutus.php',          'key' => 'about'],
         ['label' => 'DANH SÁCH SÁCH', 'href' => 'danh-sach-sach.php',  'key' => 'books'],
-        ['label' => 'PHIẾU MƯỢN',     'href' => '#',                    'key' => 'borrow'],
-        ['label' => 'KHÁM PHÁ',       'href' => '#',                    'key' => 'explore'],
-        ['label' => 'LIÊN LẠC',       'href' => '#',                    'key' => 'contact'],
+        ['label' => 'PHIẾU MƯỢN',     'href' => 'borrow.php',           'key' => 'borrow'],
+        ['label' => 'KHÁM PHÁ',       'href' => 'discover.php',         'key' => 'explore'],
+        ['label' => 'LIÊN LẠC',       'href' => 'contact.php',          'key' => 'contact'],
     ],
     'login' => 'Đăng nhập',
 ];
@@ -63,14 +68,25 @@ function render_header(array $nav, string $activeKey = ''): void
                 <span class="brand-name"><?= esc($nav['logo']) ?></span>
             </div>
             <nav class="main-nav">
+                <?php $daDangNhap = isset($_SESSION['ten_tai_khoan']); ?>
                 <?php foreach ($nav['links'] as $link): ?>
+                    <?php if ($link['key'] === 'borrow' && !$daDangNhap) { continue; } ?>
                     <a href="<?= esc($link['href']) ?>" class="<?= ($link['key'] === $activeKey) ? 'active' : '' ?>"><?= esc($link['label']) ?></a>
                 <?php endforeach; ?>
             </nav>
-            <a href="login.php" class="btn-login">
-                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.4-3.6 4.4-5.6 7.5-5.6s6.1 2 7.5 5.6"/></svg>
-                <?= esc($nav['login']) ?>
-            </a>
+            <?php if (isset($_SESSION['ten_tai_khoan'])): ?>
+                <span class="btn-login">
+                    Xin chào, <?= esc($_SESSION['ten_tai_khoan']) ?>
+                    <?= (($_SESSION['vai_tro'] ?? '') === 'admin') ? ' (admin)' : '' ?>
+                    &nbsp;|&nbsp;
+                    <a href="logout.php" style="color: inherit;">Đăng xuất</a>
+                </span>
+            <?php else: ?>
+                <a href="login.php" class="btn-login">
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.4"/><path d="M4.5 20c1.4-3.6 4.4-5.6 7.5-5.6s6.1 2 7.5 5.6"/></svg>
+                    <?= esc($nav['login']) ?>
+                </a>
+            <?php endif; ?>
         </div>
     </header>
     <?php

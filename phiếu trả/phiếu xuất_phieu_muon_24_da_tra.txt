@@ -1,0 +1,8 @@
+Mã phiếu: #24
+Họ tên: 123444
+Tên sách: onepunch
+Số lượng: 1
+Ngày mượn: 06/09/2026
+Ngày hẹn trả: 20/09/2026
+Trạng thái: Đã trả
+Ngày trả thực tế: 06/09/2026

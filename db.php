@@ -1,31 +1,22 @@
 <?php
+// db.php — Kết nối CSDL dùng PDO (đổi $db, $user, $pass cho khớp WampServer của bạn)
 
-// ==========================
-// KẾT NỐI CƠ SỞ DỮ LIỆU
-// ==========================
-// Mặc định theo WampServer: user root, không mật khẩu.
-// Nếu MySQL trên máy bạn có đặt mật khẩu root thì đổi DB_PASS lại.
+$host    = '127.0.0.1';
+$db      = 'thu_vien_mini';
+$user    = 'root';
+$pass    = '';
+$charset = 'utf8mb4';
 
-define("DB_HOST", "localhost");
-define("DB_NAME", "thu_vien_mini");
-define("DB_USER", "root");
-define("DB_PASS", "");
-
+$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+$options = [
+    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+    PDO::ATTR_EMULATE_PREPARES   => false,
+];
 
 try {
-
-    $pdo = new PDO(
-        "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
-        DB_USER,
-        DB_PASS,
-        [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        ]
-    );
-
-} catch (PDOException $e) {
-
-    die("Không kết nối được cơ sở dữ liệu: " . $e->getMessage());
-
+    $pdo = new PDO($dsn, $user, $pass, $options);
+} catch (\PDOException $e) {
+    // Không lộ chi tiết kết nối ra ngoài khi lên production
+    die('Lỗi kết nối CSDL: ' . $e->getMessage());
 }

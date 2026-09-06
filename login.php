@@ -3,7 +3,7 @@
 session_start();
 
 require_once "db.php";
-
+require_once "includes.php";
 
 // ==========================
 // KHỞI TẠO DỮ LIỆU
@@ -149,126 +149,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
      HEADER
      ========================== -->
 
-<header class="site-header">
-
-    <div class="site-header-inner">
-
-
-        <!-- LOGO -->
-
-        <div class="brand">
-
-            <span class="brand-mark">
-
-                <svg
-                    viewBox="0 0 24 24"
-                    width="22"
-                    height="22"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-
-                    <circle
-                        cx="10.5"
-                        cy="10.5"
-                        r="6.5"
-                    />
-
-                    <line
-                        x1="15.3"
-                        y1="15.3"
-                        x2="20.5"
-                        y2="20.5"
-                    />
-
-                </svg>
-
-            </span>
-
-            <span class="brand-name">
-                THƯ VIỆN
-            </span>
-
-        </div>
-
-
-        <!-- MENU -->
-
-        <nav class="main-nav">
-
-            <a href="index.php">
-                TRANG CHỦ
-            </a>
-
-            <a href="#">
-                VỀ CHÚNG TÔI
-            </a>
-
-            <a href="danh-sach-sach.php">
-                DANH SÁCH SÁCH
-            </a>
-
-            <a href="#">
-                PHIẾU MƯỢN
-            </a>
-
-            <a href="#">
-                KHÁM PHÁ
-            </a>
-
-            <a href="#">
-                LIÊN LẠC
-            </a>
-
-        </nav>
-
-
-        <!-- NÚT ĐĂNG NHẬP -->
-
-        <?php if (isset($_SESSION["ten_tai_khoan"])): ?>
-
-            <span class="btn-login">
-                Xin chào, <?= htmlspecialchars($_SESSION["ten_tai_khoan"]) ?>
-                <?= ($_SESSION["vai_tro"] === "admin") ? " (admin)" : "" ?>
-                &nbsp;|&nbsp;
-                <a href="logout.php">Đăng xuất</a>
-            </span>
-
-        <?php else: ?>
-
-            <a href="login.php" class="btn-login">
-
-                <svg
-                    viewBox="0 0 24 24"
-                    width="15"
-                    height="15"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-
-                    <circle
-                        cx="12"
-                        cy="8"
-                        r="3.4"
-                    />
-
-                    <path
-                        d="M4.5 20c1.4-3.6 4.4-5.6 7.5-5.6s6.1 2 7.5 5.6"
-                    />
-
-                </svg>
-
-                Đăng nhập
-
-            </a>
-
-        <?php endif; ?>
-
-    </div>
-
-</header>
+<?php render_header($nav); ?>
 
 
 <!-- ==========================
