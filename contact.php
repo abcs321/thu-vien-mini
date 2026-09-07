@@ -54,17 +54,80 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             )
         ";
 
-        $stmt = $conn->prepare($sql);
+        $luu_db_thanh_cong = true;
+        $loi_db = '';
 
-        $stmt->execute([
-            ':ho' => $ho,
-            ':ten' => $ten,
-            ':so_dien_thoai' => $so_dien_thoai,
-            ':email' => $email,
-            ':noi_dung' => $noi_dung
-        ]);
+        try {
 
-        $thong_bao = 'Gửi góp ý thành công!';
+            $stmt = $conn->prepare($sql);
+
+            $stmt->execute([
+                ':ho' => $ho,
+                ':ten' => $ten,
+                ':so_dien_thoai' => $so_dien_thoai,
+                ':email' => $email,
+                ':noi_dung' => $noi_dung
+            ]);
+
+        } catch (\Throwable $e) {
+
+            $luu_db_thanh_cong = false;
+            $loi_db = $e->getMessage();
+
+        }
+
+        // Tạo thư mục "liên lạc" (nếu chưa có) và ghi file .txt — độc lập với việc lưu CSDL ở trên,
+        // để dù CSDL lỗi thì file vẫn được tạo.
+        $thu_muc_lien_lac = __DIR__ . '/liên lạc';
+
+        $loi_thu_muc = '';
+
+        if (!is_dir($thu_muc_lien_lac)) {
+            if (!mkdir($thu_muc_lien_lac, 0777, true) && !is_dir($thu_muc_lien_lac)) {
+                $loi_thu_muc = 'Không thể tạo thư mục "liên lạc". Hãy kiểm tra quyền ghi (permissions) của thư mục cha.';
+            }
+        }
+
+        $ghi_file_thanh_cong = false;
+
+        if ($loi_thu_muc === '') {
+
+            $ten_file = 'lien-lac_' . date('Y-m-d_H-i-s') . '_' . uniqid() . '.txt';
+
+            $noi_dung_file =
+                "Họ: {$ho}\r\n" .
+                "Tên: {$ten}\r\n" .
+                "Số điện thoại: {$so_dien_thoai}\r\n" .
+                "Email: {$email}\r\n" .
+                "Thời gian gửi: " . date('d/m/Y H:i:s') . "\r\n" .
+                "Nội dung:\r\n{$noi_dung}\r\n";
+
+            $ket_qua_ghi = @file_put_contents(
+                $thu_muc_lien_lac . '/' . $ten_file,
+                $noi_dung_file
+            );
+
+            $ghi_file_thanh_cong = ($ket_qua_ghi !== false);
+
+        }
+
+        if ($ghi_file_thanh_cong && $luu_db_thanh_cong) {
+
+            $thong_bao = 'Gửi góp ý thành công!';
+
+        } elseif ($ghi_file_thanh_cong && !$luu_db_thanh_cong) {
+
+            $thong_bao = 'Đã lưu file góp ý, nhưng lưu vào CSDL bị lỗi: ' . $loi_db;
+
+        } elseif ($loi_thu_muc !== '') {
+
+            $thong_bao = $loi_thu_muc;
+
+        } else {
+
+            $thong_bao = 'Không thể ghi file góp ý. Hãy kiểm tra quyền ghi (permissions) của thư mục "liên lạc".';
+
+        }
 
     }
 }
@@ -81,6 +144,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Liên lạc - Thư viện</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&family=Noto+Sans:wght@400;700;900&display=swap" rel="stylesheet">
 
     <link rel="stylesheet" href="style.css">
 
@@ -599,7 +664,7 @@ render_header($nav, $activeKey);
                     </span>
 
                     <span>
-                        0985792118
+                        1234567891
                     </span>
 
                 </div>
@@ -612,7 +677,7 @@ render_header($nav, $activeKey);
                     </span>
 
                     <span>
-                        thanhbinh06@gmail.com
+                        test06@gmail.com
                     </span>
 
                 </div>

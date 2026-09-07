@@ -21,8 +21,8 @@ $nav = [
 $footer = [
     'logo'    => 'THƯ VIỆN',
     'address' => 'TRẦN PHÚ, HÀ ĐÔNG, HÀ NỘI',
-    'phone'   => '0985792118',
-    'email'   => 'thaibinhan06@gmail.com',
+    'phone'   => '1234567891',
+    'email'   => 'test@gmail.com',
     'social'  => [
         ['label' => 'Instagram', 'href' => '#', 'icon' => 'instagram'],
         ['label' => 'Facebook',  'href' => '#', 'icon' => 'facebook'],

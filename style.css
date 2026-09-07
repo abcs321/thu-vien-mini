@@ -345,10 +345,28 @@ body {
 .grid-body {
     display: flex; flex-wrap: wrap; gap: 14px;
     padding: 16px; background: #ececec;
+    justify-content: center;
 }
-.grid-item { flex: 1 1 200px; display: flex; flex-direction: column; align-items: center; }
-.grid-item img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; display: block; }
+.grid-item {
+    flex: 0 1 200px;
+    max-width: 200px;
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.grid-item img {
+    width: 100%;
+    aspect-ratio: 3 / 4;
+    object-fit: cover;
+    display: block;
+    border-radius: 6px;
+}
 .grid-item .btn-more { margin-top: 12px; }
+
+@media (max-width: 640px) {
+    .grid-item { flex-basis: 140px; max-width: 140px; width: 140px; }
+}
 
 /* ================= 4. Footer ================= */
 .site-footer { background: #0c0c0c; color: #cfd2d8; margin-top: 8px; }

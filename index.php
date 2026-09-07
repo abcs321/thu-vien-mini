@@ -63,10 +63,22 @@ $carousel = [
     ),
 ];
 
-// ---- Grid "SÁCH THỂ THAO": sách thuộc category "Thể thao" ----
+// ---- Grid "SÁCH THỂ THAO": admin có thể tự chọn sách hiển thị qua sua-danh-muc.php ----
+// Nếu admin chưa cấu hình mục này (chưa chọn ảnh nào), fallback về cách cũ:
+// tự động lấy sách mới thêm gần đây thuộc category "Thể thao".
+$gridCategory = 'Thể thao';
+$gridKhoa     = category_khoa($gridCategory);
+$gridSection  = fetch_section_by_key($pdo, $gridKhoa);
+$gridItems    = $gridSection ? fetch_category_grid_items($pdo, $gridSection['id_muc'], 3) : [];
+
+if (empty($gridItems)) {
+    $gridItems = fetch_books_by_category($pdo, $gridCategory, 3);
+}
+
 $grid = [
-    'title' => 'SÁCH THỂ THAO',
-    'items' => fetch_books_by_category($pdo, 'Thể thao', 3),
+    'title'    => $gridSection['tieu_de'] ?? ('SÁCH ' . mb_strtoupper($gridCategory)),
+    'category' => $gridCategory,
+    'items'    => $gridItems,
 ];
 
 $hero = [
@@ -244,18 +256,17 @@ function render_carousel(array $section, bool $isAdmin = false): void
         </div>
         <?php endif; ?>
         <div class="carousel-footer">
-            <a href="login.php" class="btn-login">Đăng nhập</a>
             <?php if ($isAdmin): ?>
                 <a href="sua-carousel.php?key=<?= urlencode($section['key'] ?? '') ?>" class="btn-more">Chỉnh sửa (Admin)</a>
             <?php else: ?>
-                <a href="#" class="btn-more">Tìm hiểu thêm</a>
+                <a href="discover.php" class="btn-more">Tìm hiểu thêm</a>
             <?php endif; ?>
         </div>
     </div>
     <?php
 }
 
-function render_grid(array $section): void
+function render_grid(array $section, bool $isAdmin = false): void
 {
     ?>
     <div class="grid-section">
@@ -265,15 +276,30 @@ function render_grid(array $section): void
         <?php if (empty($section['items'])): ?>
             <p class="empty-state">Chưa có dữ liệu.</p>
         <?php else: ?>
-        <div class="grid-body">
-            <?php foreach ($section['items'] as $item): ?>
-                <div class="grid-item">
-                    <img src="<?= esc($item['cover']) ?>" alt="<?= esc($item['label']) ?>">
-                    <a href="#" class="btn-more">Tìm hiểu thêm</a>
-                </div>
-            <?php endforeach; ?>
+        <div class="carousel-track-wrap">
+            <div class="carousel-track">
+                <?php foreach ($section['items'] as $item): ?>
+                    <?php if (!empty($item['id_sach'])): ?>
+                        <a href="discover.php#sach-<?= (int) $item['id_sach'] ?>" class="carousel-item" style="background-image: url('<?= esc($item['cover']) ?>'); display: block; text-decoration: none;" title="<?= esc($item['label'] ?? '') ?>"></a>
+                    <?php else: ?>
+                        <div class="carousel-item" style="background-image: url('<?= esc($item['cover']) ?>');" title="<?= esc($item['label'] ?? '') ?>"></div>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+            <div class="carousel-dots">
+                <?php foreach ($section['items'] as $item): ?>
+                    <span></span>
+                <?php endforeach; ?>
+            </div>
         </div>
         <?php endif; ?>
+        <div class="carousel-footer">
+            <?php if ($isAdmin): ?>
+                <a href="sua-danh-muc.php?the_loai=<?= urlencode($section['category'] ?? '') ?>" class="btn-more">Chỉnh sửa (Admin)</a>
+            <?php else: ?>
+                <a href="discover.php" class="btn-more">Tìm hiểu thêm</a>
+            <?php endif; ?>
+        </div>
     </div>
     <?php
 }
@@ -361,7 +387,7 @@ function render_grid(array $section): void
 <div class="page-body">
     <?php render_featured($featured, $isAdmin); ?>
     <?php render_carousel($carousel, $isAdmin); ?>
-    <?php render_grid($grid); ?>
+    <?php render_grid($grid, $isAdmin); ?>
 </div>
 <?php render_footer($footer); ?>
 

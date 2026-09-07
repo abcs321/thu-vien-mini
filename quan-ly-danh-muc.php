@@ -16,29 +16,59 @@ if (!$is_admin) {
 $edit_id = isset($_GET['id']) ? (int) $_GET['id'] : null;
 $errors  = [];
 
-// Nạp dữ liệu mục đang chỉnh sửa (nếu có id trên URL)
-$existing_category = null;
-$existing_covers   = [];
+// Nạp dữ liệu mục (thể loại/tag) đang chỉnh sửa (nếu có id trên URL)
+// LƯU Ý: $edit_id giờ là id_genre (khớp với danh-sach-sach.php dùng id_genre làm id mục),
+// không còn là id_category của bảng categories cũ nữa.
+$existing_genre  = null;
+$existing_covers = [];
 
 if ($edit_id) {
-    $stmt = $pdo->prepare('SELECT id_category, ten_category FROM categories WHERE id_category = ?');
+    $stmt = $pdo->prepare('SELECT id_genre, ten_genre FROM genres WHERE id_genre = ?');
     $stmt->execute([$edit_id]);
-    $existing_category = $stmt->fetch();
+    $existing_genre = $stmt->fetch();
 
-    if ($existing_category) {
+    if ($existing_genre) {
         $coverStmt = $pdo->prepare(
-            'SELECT s.id_sach, s.anh_bia, s.ten_sach
-             FROM sach s
-             INNER JOIN genres g ON s.id_genre = g.id_genre
-             WHERE g.id_category = ?
-             ORDER BY s.ngay_them DESC'
+            'SELECT id_sach, anh_bia, ten_sach
+             FROM sach
+             WHERE id_genre = ?
+             ORDER BY ngay_them DESC'
         );
         $coverStmt->execute([$edit_id]);
         $existing_covers = $coverStmt->fetchAll();
     }
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// Xử lý xoá cả mục (genre) — kèm xoá luôn sách và ảnh bìa bên trong mục đó
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'xoa_muc' && $edit_id && $existing_genre) {
+    $pdo->beginTransaction();
+    try {
+        // Xoá file ảnh bìa của từng sách trong mục trước khi xoá dữ liệu
+        foreach ($existing_covers as $c) {
+            if ($c['anh_bia'] && str_starts_with($c['anh_bia'], 'images/')) {
+                $old_path = __DIR__ . '/' . $c['anh_bia'];
+                if (is_file($old_path)) {
+                    unlink($old_path);
+                }
+            }
+        }
+
+        $delSach = $pdo->prepare('DELETE FROM sach WHERE id_genre = ?');
+        $delSach->execute([$edit_id]);
+
+        $delGenre = $pdo->prepare('DELETE FROM genres WHERE id_genre = ?');
+        $delGenre->execute([$edit_id]);
+
+        $pdo->commit();
+        header('Location: danh-sach-sach.php');
+        exit;
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        $errors[] = 'Không xoá được mục: ' . $e->getMessage();
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') !== 'xoa_muc') {
     $ten_muc = trim($_POST['ten_muc'] ?? '');
     if ($ten_muc === '') {
         $errors[] = 'Vui lòng nhập tên mục.';
@@ -52,39 +82,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($errors)) {
         $pdo->beginTransaction();
         try {
-            if ($edit_id && $existing_category) {
-                // Cập nhật tên mục đã có
-                $upd = $pdo->prepare('UPDATE categories SET ten_category = ? WHERE id_category = ?');
+            if ($edit_id && $existing_genre) {
+                // Cập nhật tên mục (genre) đã có
+                $upd = $pdo->prepare('UPDATE genres SET ten_genre = ? WHERE id_genre = ?');
                 $upd->execute([$ten_muc, $edit_id]);
-                $id_category = $edit_id;
-
-                // Lấy 1 thể loại sẵn có của mục này để gắn sách mới vào,
-                // nếu chưa có thể loại nào thì tạo mới
-                $genreStmt = $pdo->prepare('SELECT id_genre FROM genres WHERE id_category = ? LIMIT 1');
-                $genreStmt->execute([$id_category]);
-                $genre = $genreStmt->fetch();
-
-                if ($genre) {
-                    $id_genre = $genre['id_genre'];
-                } else {
-                    $insGenre = $pdo->prepare('INSERT INTO genres (ten_genre, id_category) VALUES (?, ?)');
-                    $insGenre->execute([$ten_muc, $id_category]);
-                    $id_genre = $pdo->lastInsertId();
-                }
+                $id_genre = $edit_id;
             } else {
-                // Tạo mục mới
-                $insCat = $pdo->prepare('INSERT INTO categories (ten_category) VALUES (?)');
-                $insCat->execute([$ten_muc]);
-                $id_category = $pdo->lastInsertId();
-
-                // Tạo 1 thể loại mặc định cùng tên để có thể gắn sách vào ngay
-                $insGenre = $pdo->prepare('INSERT INTO genres (ten_genre, id_category) VALUES (?, ?)');
-                $insGenre->execute([$ten_muc, $id_category]);
+                // Tạo mục (genre) mới
+                $insGenre = $pdo->prepare('INSERT INTO genres (ten_genre) VALUES (?)');
+                $insGenre->execute([$ten_muc]);
                 $id_genre = $pdo->lastInsertId();
             }
 
             // Cập nhật / xoá các bìa đã có ngay trên form
-            if ($edit_id && $existing_category && $existing_covers) {
+            if ($edit_id && $existing_genre && $existing_covers) {
                 foreach ($existing_covers as $c) {
                     $id_sach = (int) $c['id_sach'];
 
@@ -332,6 +343,19 @@ $page_title = $edit_id ? 'Chỉnh sửa mục danh sách sách' : 'Thêm mục t
     }
     .btn-add-slot { background: transparent; color: #ff8c1a; border: 1px solid #ff8c1a; margin-right: 12px; }
     .btn-back { display: block; margin-top: 28px; background: transparent; color: #ff8c1a; padding-left: 0; }
+
+    .btn-danger {
+        display: inline-block;
+        background: #c0392b;
+        color: #fff;
+        font-weight: 700;
+        border: none;
+        padding: 8px 18px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85rem;
+    }
+    .btn-danger:hover { background: #e74c3c; }
 </style>
 </head>
 <body>
@@ -347,7 +371,7 @@ $page_title = $edit_id ? 'Chỉnh sửa mục danh sách sách' : 'Thêm mục t
     <form method="post" enctype="multipart/form-data">
         <label class="ten-muc-box">
             <span>TÊN MỤC</span>
-            <input type="text" name="ten_muc" value="<?= esc($existing_category['ten_category'] ?? '') ?>" required>
+            <input type="text" name="ten_muc" value="<?= esc($existing_genre['ten_genre'] ?? '') ?>" required>
         </label>
 
         <?php if ($existing_covers): ?>
@@ -390,6 +414,13 @@ $page_title = $edit_id ? 'Chỉnh sửa mục danh sách sách' : 'Thêm mục t
     </form>
 
     <a class="btn-back" href="danh-sach-sach.php">&larr; Quay lại danh sách sách</a>
+
+    <?php if ($edit_id && $existing_genre): ?>
+        <form method="post" onsubmit="return confirm('Xoá mục &quot;<?= esc(addslashes($existing_genre['ten_genre'])) ?>&quot; và toàn bộ sách bên trong? Hành động này không thể hoàn tác.');" style="margin-top: 12px;">
+            <input type="hidden" name="action" value="xoa_muc">
+            <button type="submit" class="btn-danger">Xoá mục này</button>
+        </form>
+    <?php endif; ?>
 </div>
 
 <script>

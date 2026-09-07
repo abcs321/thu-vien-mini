@@ -3,7 +3,25 @@
 session_start();
  
 require_once __DIR__ . '/database.php';
- 
+
+
+// ==========================
+// PHÂN QUYỀN TRUY CẬP
+// ==========================
+// Chỉ admin và thủ thư được vào trang này.
+// - admin   : toàn quyền xem/sửa/xóa thông tin thành viên.
+// - thu_thu : chỉ được xem thành viên đang mượn sách gì và ngày cần trả,
+//             không được sửa/xóa thông tin thành viên.
+
+$vaiTro = $_SESSION['vai_tro'] ?? null;
+
+if (!in_array($vaiTro, ['admin', 'thu_thu'], true)) {
+    header('Location: login.php');
+    exit;
+}
+
+$isAdmin = ($vaiTro === 'admin');
+
  
 function e($value)
 {
@@ -44,24 +62,41 @@ $message = '';
  
  
 if (
+    $isAdmin &&
     isset($_GET['delete']) &&
     is_numeric($_GET['delete'])
 ) {
  
     $deleteId = (int)$_GET['delete'];
- 
-    $stmt = $conn->prepare(
-        "DELETE FROM doc_gia WHERE id_doc_gia = :id"
-    );
- 
-    $stmt->execute([':id' => $deleteId]);
- 
-    $message = 'Đã xóa thành viên thành công.';
+
+    if ($deleteId === (int)($_SESSION['id_doc_gia'] ?? 0)) {
+
+        $message = 'Bạn không thể tự xóa tài khoản đang đăng nhập của chính mình.';
+
+    } else {
+
+        $stmt = $conn->prepare(
+            "DELETE FROM doc_gia WHERE id_doc_gia = :id"
+        );
+
+        $stmt->execute([':id' => $deleteId]);
+
+        $message = 'Đã xóa thành viên thành công.';
+
+    }
 }
  
  
 $id = 0;
  
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && !$isAdmin) {
+
+    // Thủ thư không có quyền chỉnh sửa thông tin thành viên.
+    http_response_code(403);
+    exit('Bạn không có quyền thực hiện thao tác này.');
+
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
  
     $id = (int)($_POST['id'] ?? 0);
@@ -83,6 +118,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = trim($_POST['password'] ?? '');
  
     $errors = [];
+
+    if ($id === 0) {
+
+        $errors[] = 'Vui lòng chọn một thành viên (bấm nút "Thay đổi") trước khi lưu.';
+
+    }
  
  
     if ($name === '') {
@@ -310,6 +351,8 @@ $keyword = trim($_GET['search'] ?? '');
  
 if ($keyword === '') {
 
+    // Mặc định (chưa tìm kiếm gì): hiện 4 tài khoản đăng nhập gần nhất.
+    // Tài khoản chưa từng đăng nhập (lan_dang_nhap_cuoi NULL) xếp cuối cùng.
     $sql = "
         SELECT
             dg.id_doc_gia AS id,
@@ -325,7 +368,10 @@ if ($keyword === '') {
             ON tt.id_the = (
                 SELECT MIN(id_the) FROM the_thanh_toan WHERE id_doc_gia = dg.id_doc_gia
             )
-        ORDER BY dg.id_doc_gia ASC
+        ORDER BY
+            (dg.lan_dang_nhap_cuoi IS NULL) ASC,
+            dg.lan_dang_nhap_cuoi DESC
+        LIMIT 4
     ";
 
     $stmt = $conn->query($sql);
@@ -405,7 +451,10 @@ $emptyMember = [
     'username' => ''
 ];
  
-$selectedMember = $displayMembers[0] ?? $emptyMember;
+// Chỉ điền dữ liệu vào form khi admin bấm nút "Thay đổi" của một
+// thành viên cụ thể (qua ?id=...). Gõ tìm kiếm không tự động chọn
+// thành viên đầu tiên nữa.
+$selectedMember = $emptyMember;
  
 $focusId = $id !== 0 ? $id : (int)($_GET['id'] ?? 0);
  
@@ -447,7 +496,39 @@ if (
     ];
  
 }
- 
+
+
+// ==========================
+// DANH SÁCH SÁCH ĐANG MƯỢN (dành cho thủ thư xem)
+// ==========================
+
+$borrowedBooks = [];
+
+if (!$isAdmin && (int)$selectedMember['id'] > 0) {
+
+    $borrowStmt = $conn->prepare(
+        "SELECT
+            pm.id_phieu_muon,
+            s.ten_sach,
+            pm.so_luong,
+            pm.ngay_muon,
+            pm.ngay_tra_du_kien,
+            pm.ngay_tra_thuc_te,
+            pm.trang_thai
+         FROM phieu_muon pm
+         JOIN sach s ON s.id_sach = pm.id_sach
+         WHERE pm.id_doc_gia = :id
+         ORDER BY
+            (pm.ngay_tra_thuc_te IS NOT NULL),
+            pm.ngay_tra_du_kien ASC"
+    );
+
+    $borrowStmt->execute([':id' => $selectedMember['id']]);
+
+    $borrowedBooks = $borrowStmt->fetchAll();
+
+}
+
 ?>
 <!DOCTYPE html>
 
@@ -685,7 +766,9 @@ body {
 
     padding: 14px 12px;
 
-    overflow: hidden;
+    overflow-y: auto;
+
+    overflow-x: hidden;
 
 }
 
@@ -1204,6 +1287,81 @@ input {
 
 }
 
+.readonly-view {
+
+    padding: 0 11px;
+
+}
+
+.readonly-title {
+
+    font-size: 18px;
+
+    margin-bottom: 4px;
+
+}
+
+.readonly-code {
+
+    font-weight: normal;
+
+    color: #666;
+
+    font-size: 14px;
+
+}
+
+.readonly-subtitle {
+
+    font-size: 12px;
+
+    color: #666;
+
+    margin-bottom: 12px;
+
+}
+
+.borrow-table {
+
+    width: 100%;
+
+    border-collapse: collapse;
+
+    font-size: 13px;
+
+    background: #fff;
+
+}
+
+.borrow-table th,
+.borrow-table td {
+
+    text-align: left;
+
+    padding: 8px 10px;
+
+    border-bottom: 1px solid #ddd;
+
+}
+
+.borrow-table th {
+
+    background: #ececec;
+
+    font-size: 11px;
+
+    text-transform: uppercase;
+
+}
+
+.borrow-table tr.overdue td {
+
+    color: #c62828;
+
+    font-weight: 700;
+
+}
+
 .save-button {
 
     width: 100%;
@@ -1226,6 +1384,48 @@ input {
 .save-button:hover {
 
     background: #333;
+
+}
+
+.delete-button {
+
+    display: block;
+
+    width: 100%;
+
+    height: 35px;
+
+    line-height: 35px;
+
+    margin: 10px 0 0;
+
+    padding: 0 11px;
+
+    border: none;
+
+    background: #c62828;
+
+    color: #fff;
+
+    text-align: center;
+
+    text-decoration: none;
+
+    font-size: 13px;
+
+    font-weight: 700;
+
+    letter-spacing: .3px;
+
+    cursor: pointer;
+
+    box-sizing: border-box;
+
+}
+
+.delete-button:hover {
+
+    background: #a01f1f;
 
 }
 
@@ -1349,73 +1549,6 @@ input {
 
 <body>
 
-<header class="site-header">
-
-    <div class="site-header-inner">
-
-        <!-- LOGO -->
-        <div class="brand">
-
-            <span class="brand-mark">
-
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-                    <circle cx="10.5" cy="10.5" r="6.5"/>
-                    <line
-                        x1="15.3"
-                        y1="15.3"
-                        x2="20.5"
-                        y2="20.5"
-                    />
-                </svg>
-
-            </span>
-
-            <span class="brand-name">
-                THƯ VIỆN
-            </span>
-
-        </div>
-
-
-        <!-- MENU -->
-        <nav class="main-nav">
-
-            <a href="index.php">
-                TRANG CHỦ
-            </a>
-
-            <a href="#">
-                VỀ CHÚNG TÔI
-            </a>
-
-            <a href="danh-sach-sach.php" class="active">
-                DANH SÁCH SÁCH
-            </a>
-
-            <a href="#">
-                PHIẾU MƯỢN
-            </a>
-
-            <a href="#">
-                KHÁM PHÁ
-            </a>
-
-            <a href="#">
-                LIÊN LẠC
-            </a>
-
-        </nav>
-
-    </div>
-
-</header>
-
-
 <div class="page">
 
 
@@ -1438,18 +1571,46 @@ input {
 
     <div class="search-area">
 
-        <form method="GET">
+        <form method="GET" id="searchForm">
 
             <input
                 type="text"
                 name="search"
+                id="searchInput"
                 value="<?= e($keyword) ?>"
                 placeholder="TÌM KIẾM....."
+                autocomplete="off"
             >
 
         </form>
 
     </div>
+
+    <script>
+    (function () {
+        var input = document.getElementById('searchInput');
+        var form = document.getElementById('searchForm');
+
+        if (!input || !form) {
+            return;
+        }
+
+        var timer = null;
+
+        input.addEventListener('input', function () {
+            clearTimeout(timer);
+            timer = setTimeout(function () {
+                form.submit();
+            }, 450);
+        });
+
+        if (input.value) {
+            input.focus();
+            var len = input.value.length;
+            input.setSelectionRange(len, len);
+        }
+    })();
+    </script>
 
     <div class="member-box">
 
@@ -1472,7 +1633,7 @@ input {
                     </th>
 
                     <th>
-                        Thay đổi
+                        <?= $isAdmin ? 'Thay đổi' : 'Xem' ?>
                     </th>
 
                 </tr>
@@ -1535,8 +1696,8 @@ input {
 
                             <a
                                 class="edit-button"
-                                href="?id=<?= $member['id'] ?>"
-                                title="Thay đổi"
+                                href="?id=<?= $member['id'] ?><?= $keyword !== '' ? '&search=' . urlencode($keyword) : '' ?>"
+                                title="<?= $isAdmin ? 'Thay đổi' : 'Xem' ?>"
                             >
                             </a>
 
@@ -1567,6 +1728,9 @@ input {
             </div>
 
         <?php endif; ?>
+
+
+        <?php if ($isAdmin): ?>
 
 
         <form method="POST">
@@ -1783,6 +1947,7 @@ input {
                         $selectedMember['card_number']
                     ) ?>"
                     placeholder="Số thẻ tín dụng"
+                    autocomplete="off"
                 >
 
 
@@ -1796,6 +1961,7 @@ input {
                             $selectedMember['card_code']
                         ) ?>"
                         placeholder="Mã số thẻ"
+                        autocomplete="off"
                     >
 
 
@@ -1806,6 +1972,7 @@ input {
                             $selectedMember['cvv']
                         ) ?>"
                         placeholder="mã cvv"
+                        autocomplete="off"
                     >
 
 
@@ -1816,6 +1983,7 @@ input {
                             $selectedMember['expired_card']
                         ) ?>"
                         placeholder="hết hạn vào"
+                        autocomplete="off"
                     >
 
                 </div>
@@ -1837,6 +2005,98 @@ input {
 
 
         </form>
+
+        <?php if ((int)$selectedMember['id'] > 0): ?>
+
+            <a
+                href="?delete=<?= (int)$selectedMember['id'] ?><?= $keyword !== '' ? '&search=' . urlencode($keyword) : '' ?>"
+                class="delete-button"
+                onclick="return confirm('Bạn có chắc muốn xóa tài khoản \'<?= e($selectedMember['username']) ?>\' không? Hành động này không thể hoàn tác.');"
+            >
+                XÓA TÀI KHOẢN
+            </a>
+
+        <?php endif; ?>
+
+        <?php else: ?>
+
+        <!-- ==========================
+             KHU VỰC CHỈ XEM (THỦ THƯ)
+             Thủ thư chỉ được xem thành viên đang mượn sách gì
+             và ngày cần trả, không được sửa thông tin thành viên.
+             ========================== -->
+
+        <div class="readonly-view">
+
+            <h2 class="readonly-title">
+                <?= e($selectedMember['name'] !== '' ? $selectedMember['name'] : 'Chưa chọn thành viên') ?>
+                <?php if ($selectedMember['code'] !== ''): ?>
+                    <span class="readonly-code">(<?= e($selectedMember['code']) ?>)</span>
+                <?php endif; ?>
+            </h2>
+
+            <p class="readonly-subtitle">
+                Sách đang mượn &amp; hạn trả
+            </p>
+
+            <table class="borrow-table">
+
+                <thead>
+                    <tr>
+                        <th>Tên sách</th>
+                        <th>Ngày mượn</th>
+                        <th>Hạn trả</th>
+                        <th>Trạng thái</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    <?php if (empty($borrowedBooks)): ?>
+
+                        <tr>
+                            <td colspan="4">
+                                Thành viên này hiện không mượn sách nào.
+                            </td>
+                        </tr>
+
+                    <?php else: ?>
+
+                        <?php foreach ($borrowedBooks as $book): ?>
+
+                            <?php
+                                $daTra = !empty($book['ngay_tra_thuc_te']);
+                                $quaHan = !$daTra
+                                    && !empty($book['ngay_tra_du_kien'])
+                                    && $book['ngay_tra_du_kien'] < date('Y-m-d');
+                            ?>
+
+                            <tr class="<?= $quaHan ? 'overdue' : '' ?>">
+                                <td><?= e($book['ten_sach']) ?><?= ((int)$book['so_luong'] > 1) ? ' (x' . (int)$book['so_luong'] . ')' : '' ?></td>
+                                <td><?= e(to_display_date($book['ngay_muon'])) ?></td>
+                                <td><?= e(to_display_date($book['ngay_tra_du_kien'])) ?></td>
+                                <td>
+                                    <?php if ($daTra): ?>
+                                        Đã trả (<?= e(to_display_date($book['ngay_tra_thuc_te'])) ?>)
+                                    <?php elseif ($quaHan): ?>
+                                        Quá hạn
+                                    <?php else: ?>
+                                        Đang mượn
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+
+                        <?php endforeach; ?>
+
+                    <?php endif; ?>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        <?php endif; ?>
 
     </div>
 

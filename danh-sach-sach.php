@@ -17,17 +17,6 @@ $catalog_hero = [
         ['label' => 'Danh sách sách', 'active' => true],
         ['label' => 'Trang chủ'],
     ],
-    'search' => [
-        'label'       => 'Tìm nhanh',
-        'placeholder' => 'Nhập Tiêu Đề, LSBN, Tác giả, Số ĐKCB',
-        'submit'      => 'Tìm kiếm',
-    ],
-];
-
-$sort = [
-    'label'   => 'Sắp xếp theo',
-    'options' => ['Tất cả', 'Phổ biến', 'Đã ra mắt', 'Giá thấp nhất'],
-    'active'  => 0, // chỉ số của mục đang chọn trong 'options'
 ];
 
 /* ---------- Lấy các TAG (thể loại/genres) + bìa sách từ CSDL ---------- */
@@ -44,7 +33,7 @@ function fetch_genre_tags_from_db(PDO $pdo): array
     foreach ($stmt->fetchAll() as $genre) {
         // Lấy các sách thuộc đúng tag này, xáo ngẫu nhiên thứ tự hiển thị
         $bookStmt = $pdo->prepare(
-            'SELECT anh_bia, ten_sach
+            'SELECT id_sach, anh_bia, ten_sach
              FROM sach
              WHERE id_genre = :id_genre
              ORDER BY RAND()'
@@ -54,6 +43,7 @@ function fetch_genre_tags_from_db(PDO $pdo): array
         $covers = [];
         foreach ($bookStmt->fetchAll() as $book) {
             $covers[] = [
+                'id'  => (int) $book['id_sach'],
                 'src' => $book['anh_bia'] ?: 'images/no-cover.jpg',
                 'alt' => $book['ten_sach'],
             ];
@@ -89,28 +79,6 @@ function render_catalog_hero(array $hero): void
                 <?php endforeach; ?>
             </h1>
         </div>
-
-        <div class="quick-search">
-            <div class="quick-search-text">
-                <strong><?= esc($hero['search']['label']) ?></strong>
-                <span>/ <?= esc($hero['search']['placeholder']) ?></span>
-            </div>
-            <button type="button" class="btn-search"><?= esc($hero['search']['submit']) ?></button>
-        </div>
-    </div>
-    <?php
-}
-
-function render_sort_bar(array $sort): void
-{
-    ?>
-    <div class="sort-bar">
-        <span class="sort-label"><?= esc($sort['label']) ?></span>
-        <div class="sort-tabs">
-            <?php foreach ($sort['options'] as $i => $option): ?>
-                <button type="button" class="sort-tab <?= $i === $sort['active'] ? 'active' : '' ?>"><?= esc($option) ?></button>
-            <?php endforeach; ?>
-        </div>
     </div>
     <?php
 }
@@ -133,7 +101,9 @@ function render_book_category(array $cat, bool $is_admin): void
                 <div class="category-track">
                     <?php foreach ($cat['covers'] as $book): ?>
                         <!-- ẢNH: bìa sách trong danh mục "<?= esc($cat['label']) ?>" -->
-                        <img src="<?= esc($book['src']) ?>" alt="<?= esc($book['alt']) ?>">
+                        <a href="discover.php#sach-<?= (int) $book['id'] ?>" class="book-cover-link">
+                            <img src="<?= esc($book['src']) ?>" alt="<?= esc($book['alt']) ?>">
+                        </a>
                     <?php endforeach; ?>
                 </div>
                 <div class="category-dots">
@@ -182,6 +152,8 @@ function render_book_category(array $cat, bool $is_admin): void
     text-decoration: none;
 }
 .category-empty { color: #999; font-size: 0.9rem; padding: 12px 0; }
+.book-cover-link { display: inline-block; text-decoration: none; }
+.book-cover-link img { display: block; }
 </style>
 </head>
 <body>
@@ -190,7 +162,6 @@ function render_book_category(array $cat, bool $is_admin): void
 <?php render_catalog_hero($catalog_hero); ?>
 
 <div class="catalog-body">
-    <?php render_sort_bar($sort); ?>
     <?php foreach ($categories as $cat): ?>
         <?php render_book_category($cat, $is_admin); ?>
     <?php endforeach; ?>

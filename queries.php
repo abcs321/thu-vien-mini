@@ -225,11 +225,10 @@ function fetch_carousel_books(PDO $pdo, int $limit = 3): array
 function fetch_books_by_category(PDO $pdo, string $categoryName, int $limit = 3): array
 {
     $stmt = $pdo->prepare(
-        "SELECT s.anh_bia AS cover, s.ten_sach AS label
+        "SELECT s.id_sach AS id_sach, s.anh_bia AS cover, s.ten_sach AS label
          FROM sach s
-         JOIN genres g     ON g.id_genre = s.id_genre
-         JOIN categories c ON c.id_category = g.id_category
-         WHERE c.ten_category = :cat
+         JOIN genres g ON g.id_genre = s.id_genre
+         WHERE g.ten_genre = :cat
          ORDER BY s.ngay_them DESC
          LIMIT :limit"
     );
@@ -259,6 +258,43 @@ function fetch_active_borrows(PDO $pdo, int $id_doc_gia): array
     $stmt->execute(['id_doc_gia' => $id_doc_gia]);
 
     return $stmt->fetchAll() ?: [];
+}
+
+/**
+ * Chuyển tên thể loại (vd: "Thể thao") thành 1 khoá (khoa) ổn định để lưu vào
+ * bảng trang_chu_muc, dùng chung cơ chế với carousel "SẮP RA MẮT" nhưng cho
+ * khối lưới danh mục (vd: "SÁCH THỂ THAO") ở trang chủ.
+ */
+function category_khoa(string $categoryName): string
+{
+    $slug = mb_strtolower(trim($categoryName));
+    $slug = preg_replace('/[^a-z0-9]+/u', '_', $slug);
+    $slug = trim($slug, '_');
+
+    return 'danh_muc_' . ($slug !== '' ? $slug : 'chung');
+}
+
+/**
+ * Lấy danh sách sách (ảnh bìa + tên) mà ADMIN đã tự chọn cho 1 mục lưới danh mục
+ * (vd: "SÁCH THỂ THAO") qua sua-danh-muc.php. Dùng thay cho fetch_books_by_category
+ * mỗi khi admin đã cấu hình mục này (có ít nhất 1 ảnh).
+ * Trả về mảng phần tử dạng ['cover' => string, 'label' => string, 'id_sach' => int|null].
+ */
+function fetch_category_grid_items(PDO $pdo, int $id_muc, int $limit = 3): array
+{
+    $stmt = $pdo->prepare(
+        "SELECT m.anh_bia AS cover, COALESCE(s.ten_sach, '') AS label, m.id_sach
+         FROM trang_chu_muc_anh m
+         LEFT JOIN sach s ON s.id_sach = m.id_sach
+         WHERE m.id_muc = :id_muc
+         ORDER BY m.thu_tu ASC
+         LIMIT :limit"
+    );
+    $stmt->bindValue(':id_muc', $id_muc, PDO::PARAM_INT);
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+    $stmt->execute();
+
+    return $stmt->fetchAll();
 }
 
 // ---- Các hàm ánh xạ enum trong CSDL sang nhãn hiển thị (tag) ----

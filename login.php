@@ -83,7 +83,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if (empty($errors)) {
 
         $stmt = $pdo->prepare(
-            "SELECT id_doc_gia, ten_tai_khoan, mat_khau
+            "SELECT id_doc_gia, ten_tai_khoan, mat_khau, vai_tro
              FROM doc_gia
              WHERE ten_tai_khoan = :username
              LIMIT 1"
@@ -104,18 +104,32 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             // ==========================
             // ĐĂNG NHẬP THÀNH CÔNG -> TẠO SESSION
             // ==========================
-            // Phân biệt admin / user thường qua tên tài khoản:
-            // tài khoản có ten_tai_khoan = 'admin' sẽ là admin.
+            // Vai trò được lấy trực tiếp từ cột vai_tro trong bảng doc_gia:
+            // 'admin'   -> quản trị viên (toàn quyền)
+            // 'thu_thu' -> thủ thư (chỉ xem thông tin mượn/trả sách)
+            // 'doc_gia' -> độc giả thường (mặc định nếu cột trống)
 
-            $vai_tro = ($user["ten_tai_khoan"] === "admin") ? "admin" : "user";
+            $vai_tro = $user["vai_tro"] ?: "doc_gia";
 
             $_SESSION["id_doc_gia"]   = $user["id_doc_gia"];
             $_SESSION["ten_tai_khoan"] = $user["ten_tai_khoan"];
             $_SESSION["vai_tro"]      = $vai_tro;
 
+            // Ghi lại thời điểm đăng nhập gần nhất (dùng để hiện
+            // "4 tài khoản đăng nhập gần nhất" ở trang quản lý thành viên)
+            $updateLogin = $pdo->prepare(
+                "UPDATE doc_gia SET lan_dang_nhap_cuoi = NOW() WHERE id_doc_gia = :id"
+            );
+            $updateLogin->execute(["id" => $user["id_doc_gia"]]);
+
+            $vai_tro_label = [
+                "admin"   => " (admin).",
+                "thu_thu" => " (thủ thư).",
+            ];
+
             $success = "Đăng nhập thành công! Xin chào " .
                 htmlspecialchars($user["ten_tai_khoan"]) .
-                ($vai_tro === "admin" ? " (admin)." : ".");
+                ($vai_tro_label[$vai_tro] ?? ".");
         }
     }
 
@@ -192,7 +206,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             <div class="success-message">
                 Bạn đã đăng nhập với tài khoản
                 <?= htmlspecialchars($_SESSION["ten_tai_khoan"]) ?>
-                <?= ($_SESSION["vai_tro"] === "admin") ? " (admin)" : "" ?>.
+                <?php if ($_SESSION["vai_tro"] === "admin"): ?>
+                    (admin)
+                <?php elseif ($_SESSION["vai_tro"] === "thu_thu"): ?>
+                    (thủ thư)
+                <?php endif; ?>.
 
                 <br>
 
