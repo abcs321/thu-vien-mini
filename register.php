@@ -142,8 +142,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $mat_khau_hash = password_hash($password, PASSWORD_DEFAULT);
 
         $stmt = $pdo->prepare(
-            "INSERT INTO doc_gia (ten_tai_khoan, email, mat_khau)
-             VALUES (:username, :email, :mat_khau)"
+            "INSERT INTO doc_gia (ten_tai_khoan, email, mat_khau, ngay_dang_ky)
+             VALUES (:username, :email, :mat_khau, NOW())"
         );
 
         $stmt->execute([

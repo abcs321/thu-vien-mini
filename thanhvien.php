@@ -37,8 +37,13 @@ function to_display_date(?string $d): string
     if (!$d) {
         return '';
     }
- 
-    $t = DateTime::createFromFormat('Y-m-d', $d);
+
+    // Cột có thể là DATE ("Y-m-d") hoặc TIMESTAMP/DATETIME
+    // ("Y-m-d H:i:s"). Chỉ lấy phần ngày (10 ký tự đầu) để
+    // parse cho chắc, tránh bị rỗng khi cột là timestamp.
+    $datePart = substr($d, 0, 10);
+
+    $t = DateTime::createFromFormat('Y-m-d', $datePart);
  
     return $t ? $t->format('d/m/Y') : '';
 }
@@ -351,7 +356,8 @@ $keyword = trim($_GET['search'] ?? '');
  
 if ($keyword === '') {
 
-    // Mặc định (chưa tìm kiếm gì): hiện 4 tài khoản đăng nhập gần nhất.
+    // Mặc định (chưa tìm kiếm gì): hiện tất cả thành viên, ưu tiên
+    // 4 tài khoản đăng nhập gần nhất lên đầu (kéo xuống để xem thêm).
     // Tài khoản chưa từng đăng nhập (lan_dang_nhap_cuoi NULL) xếp cuối cùng.
     $sql = "
         SELECT
@@ -371,7 +377,6 @@ if ($keyword === '') {
         ORDER BY
             (dg.lan_dang_nhap_cuoi IS NULL) ASC,
             dg.lan_dang_nhap_cuoi DESC
-        LIMIT 4
     ";
 
     $stmt = $conn->query($sql);
@@ -1755,7 +1760,7 @@ input {
                 <div class="field name-field">
 
                     <label>
-                        HỌ VÀ TÊN
+                        HỌ VÀ TÊN (thông tin tùy chọn)
                     </label>
 
 
@@ -1774,7 +1779,7 @@ input {
                 <div class="field birthday-field">
 
                     <label>
-                        NGÀY SINH
+                        NGÀY SINH (thông tin tùy chọn)
                     </label>
 
 
@@ -1848,7 +1853,7 @@ input {
             <div class="living">
 
                 <label>
-                    Nơi sống
+                    Nơi sống (thông tin tùy chọn)
                 </label>
 
 
@@ -1935,7 +1940,7 @@ input {
             <div class="payment">
 
                 <label>
-                    Thông tin thanh toán
+                    Thông tin thanh toán (thông tin tùy chọn)
                 </label>
 
 
